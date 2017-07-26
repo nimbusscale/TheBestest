@@ -12,3 +12,5 @@ def lambda_handler(event,context):
         KeyConditionExpression=Key('user_id').eq(event['user_id'])
     )
     return(response)
+
+
