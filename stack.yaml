@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: "Stack for TheBestest App"
+Resources:
+  ItemTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "items"
+      KeySchema:
+        - AttributeName: "user_id"
+          KeyType: "HASH"
+        - AttributeName: "category_name"
+          KeyType: "RANGE"
+      AttributeDefinitions:
+        - AttributeName: "user_id"
+          AttributeType: "S"
+        - AttributeName: "category_name"
+          AttributeType: "S"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
