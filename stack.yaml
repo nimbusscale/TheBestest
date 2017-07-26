@@ -28,7 +28,7 @@ Resources:
                   - "dynamodb:Query"
                   - "dynamodb:Scan"
                   - "dynamodb:UpdateItem"
-                Resource: "arn:aws:dynamodb:us-east-2:574008402433:table/items"
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ItemTable}
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   ItemTable:
