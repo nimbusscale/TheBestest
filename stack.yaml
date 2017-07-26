@@ -2,6 +2,12 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
 Description: "Stack for TheBestest App"
 Resources:
+  API:
+    Type: "AWS::Serverless::Api"
+    Properties:
+      Name: "TheBestest"
+      StageName: "dev"
+      DefinitionUri: "./api.yaml"
   LambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -55,3 +61,10 @@ Resources:
       Runtime: "python3.6"
       CodeUri: "./functions/get_items_by_user"
       Role: !GetAtt LambdaRole.Arn
+      Events:
+        ApiGw:
+          Type: "Api"
+          Properties:
+            Path: "/items"
+            Method: "GET"
+            RestApiId: !Ref API
