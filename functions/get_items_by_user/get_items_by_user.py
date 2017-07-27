@@ -10,9 +10,9 @@ dynamodb = boto3.resource('dynamodb', region_name=region)
 table = dynamodb.Table(os.environ['itemsTableName'])
 
 
-def lambda_handler(event,context):
+def lambda_handler(event, context):
     response = table.query(
-        KeyConditionExpression = Key('user_id').eq(event['user_id'])
+        KeyConditionExpression=Key('user_id').eq(event['user_id'])
     )
     return(response)
 
