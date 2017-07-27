@@ -8,6 +8,8 @@ Resources:
       Name: "TheBestest"
       StageName: "dev"
       DefinitionUri: "./api.yaml"
+      Variables:
+        GetItemsByUserFunction: !Ref GetItemsByUserFunction
   LambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
