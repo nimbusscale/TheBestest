@@ -1,72 +1,72 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Transform: "AWS::Serverless-2016-10-31"
-Description: "Stack for TheBestest App"
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Stack for TheBestest App
 Resources:
   api:
-    Type: "AWS::Serverless::Api"
+    Type: AWS::Serverless::Api
     Properties:
-      Name: "TheBestest"
-      StageName: "dev"
-      DefinitionUri: "./api.yaml"
+      Name: TheBestest
+      StageName: dev
+      DefinitionUri: ./api.yaml
       Variables:
         GetItemsByUserFunction: !Ref getItemsByUserFunction
   lambdaRole:
-    Type: "AWS::IAM::Role"
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: 2012-10-17
         Statement:
-          - Effect: "Allow"
+          - Effect: Allow
             Principal:
-              Service: "lambda.amazonaws.com"
-            Action: "sts:AssumeRole"
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Policies:
-        - PolicyName: "BestestDbAccess"
+        - PolicyName: BestestDbAccess
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: 2012-10-17
             Statement:
-              - Effect: "Allow"
+              - Effect: Allow
                 Action:
-                  - "dynamodb:BatchGetItem"
-                  - "dynamodb:BatchWriteItem"
-                  - "dynamodb:DeleteItem"
-                  - "dynamodb:GetItem"
-                  - "dynamodb:GetRecords"
-                  - "dynamodb:PutItem"
-                  - "dynamodb:Query"
-                  - "dynamodb:Scan"
-                  - "dynamodb:UpdateItem"
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:GetItem
+                  - dynamodb:GetRecords
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
                 Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${itemTable}
       ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   itemTable:
-    Type: "AWS::DynamoDB::Table"
+    Type: AWS::DynamoDB::Table
     Properties:
-      TableName: "thebestest_items"
+      TableName: thebestest_items
       KeySchema:
-        - AttributeName: "user_id"
-          KeyType: "HASH"
-        - AttributeName: "category_name"
-          KeyType: "RANGE"
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: category_name
+          KeyType: RANGE
       AttributeDefinitions:
-        - AttributeName: "user_id"
-          AttributeType: "S"
-        - AttributeName: "category_name"
-          AttributeType: "S"
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: category_name
+          AttributeType: S
       ProvisionedThroughput:
-        ReadCapacityUnits: "5"
-        WriteCapacityUnits: "5"
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   getItemsByUserFunction:
-    Type: "AWS::Serverless::Function"
+    Type: AWS::Serverless::Function
     Properties:
-      Handler: "get_items_by_user.lambda_handler"
-      Runtime: "python3.6"
-      CodeUri: "./functions/get_items_by_user"
+      Handler: get_items_by_user.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./functions/get_items_by_user
       Role: !GetAtt lambdaRole.Arn
       Events:
         ApiGw:
-          Type: "Api"
+          Type: Api
           Properties:
-            Path: "/items"
-            Method: "GET"
+            Path: /items
+            Method: GET
             RestApiId: !Ref api
