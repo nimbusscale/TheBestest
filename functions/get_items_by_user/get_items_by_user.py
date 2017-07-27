@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import logging
+import os
+
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
-table = dynamodb.Table('items')
+table = dynamodb.Table(os.environ['itemsTableName'])
 
 
 def lambda_handler(event,context):

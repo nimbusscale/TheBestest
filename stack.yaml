@@ -63,6 +63,9 @@ Resources:
       Runtime: python3.6
       CodeUri: ./functions/get_items_by_user
       Role: !GetAtt lambdaRole.Arn
+      Environment:
+        Variables:
+          itemsTableName: !Ref itemTable
       Events:
         ApiGw:
           Type: Api
