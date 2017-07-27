@@ -27,13 +27,15 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+# Todo: Ideally set timeout to very low as service is running on localhost.
+# Attempted to set timeout, but was unable tog get it to work.
 dynamodb = boto3.resource(service_name='dynamodb',
                           endpoint_url='http://localhost:8000')
 
-def create_dynamodb_tables(template_path):
-    """Creates dynDB tables defined in a CFN template"""
-    # Todo: Ideally set timeout to very low as service is running on localhost.
-    # Attempted to set timeout, but was unable tog get it to work.
+
+def get_dynamodb_table_specs(template_path):
+    """Identifies DynDB tables in a CFN template and returns dict of configs"""
+    dynamodb_table_specs = {}
     logging.info("reading CFN Template {}".format(args.template_path))
     with open(template_path) as template:
         cfn_text = template.read()
@@ -46,13 +48,21 @@ def create_dynamodb_tables(template_path):
         if cfn_yaml['Resources'][resource_id]['Type'] == "AWS::DynamoDB::Table":
             logging.info("Identified CFN Resource {}".format(resource_id))
             properties = cfn_yaml['Resources'][resource_id]['Properties']
-            logging.info("Creating table {}".format(properties['TableName']))
-            dynamodb.create_table(**properties)
+            dynamodb_table_specs[resource_id] = properties
+    return dynamodb_table_specs
 
 
-def seed_items_table():
+def create_dynamodb_tables(table_specs):
+    """Creates dynDB tables based on dict of table specs"""
+    for table in table_specs.keys():
+        properties = table_specs[table]
+        logging.info("Creating table {}".format(properties['TableName']))
+        dynamodb.create_table(**properties)
+
+
+def seed_items_table(table_name):
     """Loads test data into the items table"""
-    table = dynamodb.Table('thebestest_items')
+    table = dynamodb.Table(table_name)
     # list of dicts that will be created as records into the table
     items = [
         {'user_id': "jjk3", 'category_name': "bbq",
@@ -63,8 +73,9 @@ def seed_items_table():
         table.put_item(Item=item)
 
 if __name__ == '__main__':
-    create_dynamodb_tables(args.template_path)
-    seed_items_table()
+    table_specs = get_dynamodb_table_specs(args.template_path)
+    create_dynamodb_tables(table_specs)
+    seed_items_table(table_specs['itemTable']['TableName'])
 
 
 
