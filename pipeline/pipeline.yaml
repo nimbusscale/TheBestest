@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Pipeline for TheBestest App
+Parameters:
+  OAuthToken:
+    Type: String
 Resources:
   # Todo add lifecycle policies
   pipelineBucket:
@@ -124,7 +127,7 @@ Resources:
   theBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: thebestest
+      Name: thebestest-build
       ServiceRole: !GetAtt buildRole.Arn
       Source:
         Type: CODEPIPELINE
@@ -138,7 +141,7 @@ Resources:
   theBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: thebestest
+      Name: thebestest-pipeline
       ArtifactStore:
         Location: !Ref pipelineBucket
         Type: S3
@@ -154,7 +157,7 @@ Resources:
                 Version: 1
               Configuration:
                 Owner: nimbusscale
-                OAuthToken: f5b26fa5693c8b2a5559ba0542e95b776bb159dd
+                OAuthToken: !Ref OAuthToken
                 Repo: TheBestest
                 Branch: master
                 PollForSourceChanges: true
@@ -162,7 +165,7 @@ Resources:
                 - Name: thebestest-source
         - Name: Build
           Actions:
-            - Name: build
+            - Name: test_package
               ActionTypeId:
                 Category: Build
                 Owner: AWS
@@ -174,22 +177,6 @@ Resources:
                 - Name: thebestest-source
               OutputArtifacts:
                 - Name: thebestest-deploy-template
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
