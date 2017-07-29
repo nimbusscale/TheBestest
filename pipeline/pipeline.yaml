@@ -26,6 +26,7 @@ Resources:
         - PolicyName: cloudformationPolicy
           PolicyDocument:
             Version: 2012-10-17
+            # Todo consider locking down more
             Statement:
               - Effect: Allow
                 Action:
@@ -34,7 +35,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:*
-                Resource: !Join [ "", ["arn:aws:lambda:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":function:*" ] ]
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - apigateway:*
@@ -60,6 +61,15 @@ Resources:
               - Effect: Allow
                 Action:
                   - cloudformation:CreateChangeSet
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cognito-idp:CreateUserPool
+                  - cognito-idp:CreateUserPoolClient
+                  - cognito-idp:DeleteUserPool
+                  - cognito-idp:DeleteUserPoolClient
+                  - cognito-idp:UpdateUserPool
+                  - cognito-idp:UpdateUserPoolClient
                 Resource: "*"
   pipelineRole:
     Type: AWS::IAM::Role
