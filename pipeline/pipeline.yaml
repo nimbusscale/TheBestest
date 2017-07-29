@@ -4,7 +4,6 @@ Parameters:
   OAuthToken:
     Type: String
 Resources:
-  # Todo add lifecycle policies
   pipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
