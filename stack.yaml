@@ -10,6 +10,17 @@ Resources:
       DefinitionUri: ./api.yaml
       Variables:
         GetItemsByUserFunction: !Ref getItemsByUserFunction
+  userPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: thebestest-userpool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireUppercase: false
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
   lambdaRole:
     Type: AWS::IAM::Role
     Properties:
