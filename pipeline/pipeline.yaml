@@ -140,7 +140,7 @@ Resources:
       ServiceRole: !GetAtt buildRole.Arn
       Source:
         Type: CODEPIPELINE
-        BuildSpec: buildspec.yaml
+        BuildSpec: pipeline/package-buildspec.yaml
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
