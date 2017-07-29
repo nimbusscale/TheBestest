@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 DYNDB_PATH=./dynamodb
 
 if [[ ! -d ${DYNDB_PATH} ]]; then
