@@ -9,7 +9,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: thebestest-pipeline
-  # Todo Separate Roles into an Include
   cloudformationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -49,6 +48,7 @@ Resources:
                   - iam:AttachRolePolicy
                   - iam:DetachRolePolicy
                   - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
                 Resource: !Join [ "", ["arn:aws:iam::", !Ref "AWS::AccountId", ":role/*" ] ]
               - Effect: Allow
                 Action:
@@ -77,8 +77,7 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:PutObject
-# Todo lock down - Example https://github.com/awslabs/aws-codepipeline-block-production/blob/master/setup-block-production-resources-stack.yml
-                Resource: "*"
+                Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
                   - cloudformation:CreateStack
@@ -91,19 +90,16 @@ Resources:
                   - cloudformation:ExecuteChangeSet
                   - cloudformation:SetStackPolicy
                   - cloudformation:ValidateTemplate
-                # Todo lockdown
                 Resource: "*"
               - Effect: Allow
                 Action:
                   - iam:PassRole
-                # Todo lockdown
-                Resource: "*"
+                Resource: !GetAtt cloudformationRole.Arn
               - Effect: Allow
                 Action:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
-                # Todo lockdown
-                Resource: "*"
+                Resource: !GetAtt theBestestBuild.Arn
   buildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -115,24 +111,25 @@ Resources:
               Service: codebuild.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: pipelinePolicy
+        - PolicyName: buildPolicy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/*" ] ]
+              - Effect: Allow
+                Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                #Todo lockdown
-                Resource: "*"
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest-build:log-stream:*" ] ]
               - Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:GetObjectVersion
                   - s3:PutObject
-                #Todo lockdown
-                Resource: "*"
+                Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
   theBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
