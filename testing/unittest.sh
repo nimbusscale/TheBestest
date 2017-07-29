@@ -1,10 +1,12 @@
 #!/bin/bash
 DYNDB_PATH=./dynamodb
 
+chmod +x init_local_dyn_db.py
+
 pip3 install -r ../requirements.txt
 
 if [[ ! -d ${DYNDB_PATH} ]]; then
-    wget https://s3-us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.zip
+    curl -o dynamodb_local_latest.zip https://s3-us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.zip
     unzip -q -d ${DYNDB_PATH} dynamodb_local_latest.zip
 fi
 
