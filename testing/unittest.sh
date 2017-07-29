@@ -1,10 +1,6 @@
 #!/bin/bash
 DYNDB_PATH=./dynamodb
 
-chmod +x init_local_dyn_db.py
-
-pip3 install -r ../requirements.txt
-
 if [[ ! -d ${DYNDB_PATH} ]]; then
     curl -o dynamodb_local_latest.zip https://s3-us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.zip
     unzip -q -d ${DYNDB_PATH} dynamodb_local_latest.zip
@@ -14,6 +10,7 @@ fi
 java -Djava.library.path=${DYNDB_PATH}/DynamoDBLocal_lib -jar ${DYNDB_PATH}/DynamoDBLocal.jar -sharedDb -inMemory &
 
 # Initialize DynDB for Testing
+chmod +x init_local_dyn_db.py
 ./init_local_dyn_db.py
 
 # Unit Test Lambdas

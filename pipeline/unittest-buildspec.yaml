@@ -3,4 +3,5 @@ phases:
   build:
     commands:
       - yum -y install java
+      - pip install -r requirements.txt
       - cd testing && bash ./unittest.sh
