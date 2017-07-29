@@ -9,6 +9,10 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: thebestest-pipeline
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 7
+            Status: Enabled
   cloudformationRole:
     Type: AWS::IAM::Role
     Properties:
