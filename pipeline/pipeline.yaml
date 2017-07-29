@@ -133,6 +133,20 @@ Resources:
                   - s3:GetObjectVersion
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
+  theBestestUnitTest:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: thebestest-unittest
+      ServiceRole: !GetAtt buildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/unittest-buildspec.yaml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
+      Artifacts:
+        Type: CODEPIPELINE
   theBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -172,7 +186,19 @@ Resources:
                 PollForSourceChanges: true
               OutputArtifacts:
                 - Name: thebestest-source
-        - Name: Build
+        - Name: UnitTest
+          Actions:
+            - Name: UnitTest
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref theBestestUnitTest
+              InputArtifacts:
+                - Name: thebestest-source
+        - Name: Package
           Actions:
             - Name: Package
               ActionTypeId:
