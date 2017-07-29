@@ -2,4 +2,4 @@ version: 0.2
 phases:
   build:
     commands:
-      - cd testing && ./unittest.sh
+      - cd testing && bash ./unittest.sh

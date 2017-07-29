@@ -102,7 +102,9 @@ Resources:
                 Action:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
-                Resource: !GetAtt theBestestBuild.Arn
+                Resource:
+                  - !GetAtt theBestestBuild.Arn
+                  - !GetAtt theBestestUnitTest.Arn
   buildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -126,7 +128,7 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest-build:log-stream:*" ] ]
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest*:log-stream:*" ] ]
               - Effect: Allow
                 Action:
                   - s3:GetObject
