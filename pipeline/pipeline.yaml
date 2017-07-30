@@ -26,7 +26,7 @@ Resources:
         - PolicyName: cloudformationPolicy
           PolicyDocument:
             Version: 2012-10-17
-            # Todo consider locking down more
+            # Todo consider locking down perms
             Statement:
               - Effect: Allow
                 Action:

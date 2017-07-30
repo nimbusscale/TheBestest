@@ -21,6 +21,13 @@ Resources:
           RequireLowercase: false
           RequireNumbers: false
           RequireSymbols: false
+  adminClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: thebestest-adminclient
+      UserPoolId: !Ref userPool
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
   lambdaRole:
     Type: AWS::IAM::Role
     Properties:
