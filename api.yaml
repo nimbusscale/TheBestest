@@ -43,7 +43,7 @@ securityDefinitions:
     x-amazon-apigateway-authtype: "cognito_user_pools"
     x-amazon-apigateway-authorizer:
       providerARNs:
-      - "${stageVariables.userPoolArn}"
+      - "arn:aws:cognito-idp:us-east-2:574008402433:userpool/${stageVariables.userPoolId}"
       type: "cognito_user_pools"
 definitions:
   Empty:
