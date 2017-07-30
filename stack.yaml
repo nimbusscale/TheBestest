@@ -9,6 +9,7 @@ Resources:
       StageName: dev
       DefinitionUri: ./api.yaml
       Variables:
+        userPoolArn: !GetAtt userPool.Arn
         GetItemsByUserFunction: !Ref getItemsByUserFunction
   userPool:
     Type: AWS::Cognito::UserPool
