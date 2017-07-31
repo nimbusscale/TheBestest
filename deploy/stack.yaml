@@ -1,5 +1,4 @@
 AWSTemplateFormatVersion: 2010-09-09
-Transform: AWS::Serverless-2016-10-31
 Description: Stack for TheBestest App
 Resources:
 ###############################################################################
@@ -38,10 +37,23 @@ Resources:
 ###############################################################################
 ## API Infra and User Pool
 ###############################################################################
-  api:
+  apiGw:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: thebestest-api
+
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref apiGw
+
+  apiStageV1:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: v1
+      RestApiId: !Ref apiGw
+      DeploymentId: !Ref apiDeployment
+
   userPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -53,6 +65,7 @@ Resources:
           RequireLowercase: false
           RequireNumbers: false
           RequireSymbols: false
+
   adminClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -90,15 +103,15 @@ Resources:
   itemsResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: !GetAtt api.RootResourceId
+      ParentId: !GetAtt apiGw.RootResourceId
       PathPart: items
-      RestApiId: !Ref api
+      RestApiId: !Ref apiGw
 
 # GET /items
   getItemsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      RestApiId: !Ref api
+      RestApiId: !Ref apiGw
       ResourceId: !Ref itemsResource
       HttpMethod: GET
       AuthorizationType: NONE
@@ -131,7 +144,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/GET/items"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGw}/*/GET/items"
       FunctionName: !Ref getItemsFunction
       Action: lambda:InvokeFunction
 
