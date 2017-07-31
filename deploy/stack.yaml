@@ -42,18 +42,6 @@ Resources:
     Properties:
       Name: thebestest-api
 
-  apiDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref apiGw
-
-  apiStageV1:
-    Type: AWS::ApiGateway::Stage
-    Properties:
-      StageName: v1
-      RestApiId: !Ref apiGw
-      DeploymentId: !Ref apiDeployment
-
   apiAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
@@ -127,7 +115,7 @@ Resources:
       AuthorizationType: COGNITO_USER_POOLS
       AuthorizerId: !Ref apiAuthorizer
       RequestParameters:
-        method.request.querystring.user_id: true
+        method.request.querystring.user_id: false
       Integration:
         Type: AWS
         IntegrationHttpMethod: POST
@@ -169,4 +157,6 @@ Outputs:
     Value: !Ref userPool
   adminClientId:
     Value: !Ref adminClient
+  apiGwId:
+    Value: !Ref apiGw
 
