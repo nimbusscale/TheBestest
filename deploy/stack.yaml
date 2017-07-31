@@ -41,6 +41,7 @@ Resources:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: thebestest-api
+      Description: Rest API for the bestest
 
   apiAuthorizer:
     Type: AWS::ApiGateway::Authorizer

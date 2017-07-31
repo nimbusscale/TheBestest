@@ -3,10 +3,10 @@ phases:
   build:
     commands:
       # Todo parametrize bucket name
-      - cd deploy && aws cloudformation package --template-file stack.yaml
-                                                --s3-bucket thebestest-pipeline
-                                                --output-template-file stack_deploy.yaml
+      - aws cloudformation package --template-file deploy/stack.yaml
+                                   --s3-bucket thebestest-pipeline
+                                   --output-template-file stack_deploy.yaml
 artifacts:
   type: zip
   files:
-    - deploy/stack_deploy.yaml
+    - stack_deploy.yaml
