@@ -12,6 +12,7 @@ Resources:
         Rules:
           - ExpirationInDays: 7
             Status: Enabled
+
   cloudformationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -71,6 +72,7 @@ Resources:
                   - cognito-idp:UpdateUserPool
                   - cognito-idp:UpdateUserPoolClient
                 Resource: "*"
+
   pipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -106,6 +108,14 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
+                  - lambda:ListFunctions
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt deployApiFunction.Arn
+              - Effect: Allow
+                Action:
                   - iam:PassRole
                 Resource: !GetAtt cloudformationRole.Arn
               - Effect: Allow
@@ -115,6 +125,7 @@ Resources:
                 Resource:
                   - !GetAtt theBestestBuild.Arn
                   - !GetAtt theBestestUnitTest.Arn
+
   buildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -145,6 +156,43 @@ Resources:
                   - s3:GetObjectVersion
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
+
+  deployApiLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: deployApiLambdaPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - codepipeline:PutJobFailureResult
+                 - codepipeline:PutJobSuccessResult
+                 - cloudformation:DescribeStacks
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  deployApiFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ../functions/stage-deploy
+      Handler: stage-deploy.lambda_handler
+      Role: !GetAtt deployApiLambdaRole.Arn
+      Runtime: python3.6
+
   theBestestUnitTest:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -159,6 +207,7 @@ Resources:
         Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
       Artifacts:
         Type: CODEPIPELINE
+
   theBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -173,6 +222,7 @@ Resources:
         Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
       Artifacts:
         Type: CODEPIPELINE
+
   theBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -253,6 +303,17 @@ Resources:
                 StackName: thebestest-stack
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: thebestest-stack-changeset
+            - Name: DeployApi
+              RunOrder: 3
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: 1
+              Configuration:
+                FunctionName: !Ref deployApiFunction
+                UserParameters: "{\"stackName\": \"thebestest-stack\", \"stageName\": \"v1\"}"
+
 
 
 
