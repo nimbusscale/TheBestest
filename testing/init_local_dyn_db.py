@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(
                 "running DynamoDB server.")
 parser.add_argument(
     '--template-path',
-    default="../stack.yaml",
+    default="../deploy/stack.yaml",
     help="Path to the CloudFormation YAML template"
 )
 args = parser.parse_args()
