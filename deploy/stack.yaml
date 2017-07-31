@@ -54,6 +54,16 @@ Resources:
       RestApiId: !Ref apiGw
       DeploymentId: !Ref apiDeployment
 
+  apiAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: userpool
+      RestApiId: !Ref apiGw
+      IdentitySource: method.request.header.Authorization
+      Type: COGNITO_USER_POOLS
+      ProviderARNs:
+        - !GetAtt userPool.Arn
+
   userPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -114,7 +124,8 @@ Resources:
       RestApiId: !Ref apiGw
       ResourceId: !Ref itemsResource
       HttpMethod: GET
-      AuthorizationType: NONE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref apiAuthorizer
       RequestParameters:
         method.request.querystring.user_id: true
       Integration:
