@@ -25,5 +25,13 @@ def lambda_handler(event, context):
     # Deploy the API
     apigw.create_deployment(restApiId=apiGwId,
                             stageName=user_params['stageName'])
+    # Make sure logging is enabled
+    apigw.update_stage(restApiId=apiGwId,
+                       stageName=user_params['stageName'],
+                       patchOperations=[
+                           {'op': 'replace',
+                            'path': '/*/*/logging/loglevel',
+                            'value': 'INFO'}
+                       ])
     # Confirm Success back to codepipeline
     codepipeline.put_job_success_result(jobId=job_id)

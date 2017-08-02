@@ -115,15 +115,13 @@ Resources:
       HttpMethod: GET
       AuthorizationType: COGNITO_USER_POOLS
       AuthorizerId: !Ref apiAuthorizer
-      RequestParameters:
-        method.request.querystring.user_id: false
       Integration:
         Type: AWS
         IntegrationHttpMethod: POST
         Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getItemsFunction.Arn}/invocations"
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:
-          application/json: "{ \n    \"user_id\" : \"$input.params('user_id')\"\n}"
+          application/json: "{\"data\": \"\", \"metadata\" : { \"requestId\" : \"$context.requestId\", \"userId\": \"$context.authorizer.claims.sub\" }}"
         IntegrationResponses:
           - StatusCode: 200
       MethodResponses:
