@@ -188,8 +188,8 @@ Resources:
   deployApiFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Code: ../functions/stage-deploy
-      Handler: stage-deploy.lambda_handler
+      Code: ../functions/stage_deploy
+      Handler: stage_deploy.lambda_handler
       Role: !GetAtt deployApiLambdaRole.Arn
       Runtime: python3.6
 
