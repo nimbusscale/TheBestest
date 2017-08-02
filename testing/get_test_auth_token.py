@@ -2,13 +2,10 @@
 """Gets an auth token for the test user, creates test user if need be."""
 import boto3
 
+# Todo Parametrize
 stackname = 'thebestest-stack'
 test_username = "test123"
 test_password = "test123"
-
-cloudformation = boto3.resource('cloudformation')
-cognito = boto3.client('cognito-idp')
-
 
 def get_cognito_info(cfn_stackname):
     """Gets Cognito info from stack outputs"""
@@ -52,6 +49,8 @@ def get_auth_token(username, password, cognito_info):
 
 
 if __name__ == '__main__':
+    cloudformation = boto3.resource('cloudformation')
+    cognito = boto3.client('cognito-idp')
     cognito_info = get_cognito_info(stackname)
     if check_user_exists(test_username, cognito_info) is False:
         signup_test_user(test_username, test_password, cognito_info)
