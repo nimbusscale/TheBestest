@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Pipeline for TheBestest App
+Resources:
+  pipelineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: thebestest-pipeline
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 7
+            Status: Enabled
+Outputs:
+  bucketId:
+    Value: !Ref pipelineBucket
+    Export:
+      Name: theBestest-pipelineBucket
+
+
+
+
+

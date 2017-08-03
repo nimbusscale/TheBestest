@@ -4,15 +4,6 @@ Parameters:
   OAuthToken:
     Type: String
 Resources:
-  pipelineBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: thebestest-pipeline
-      LifecycleConfiguration:
-        Rules:
-          - ExpirationInDays: 7
-            Status: Enabled
-
   cloudformationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -32,7 +23,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
                   - lambda:*
@@ -92,7 +83,7 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
                   - cloudformation:CreateStack
@@ -155,7 +146,7 @@ Resources:
                   - s3:GetObject
                   - s3:GetObjectVersion
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !Ref pipelineBucket, "/*"]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
 
   deployApiLambdaRole:
     Type: AWS::IAM::Role
@@ -223,97 +214,31 @@ Resources:
       Artifacts:
         Type: CODEPIPELINE
 
-  theBestestPipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      Name: thebestest-pipeline
-      ArtifactStore:
-        Location: !Ref pipelineBucket
-        Type: S3
-      RoleArn: !GetAtt pipelineRole.Arn
-      Stages:
-        - Name: Source
-          Actions:
-            - Name: Master
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
-                Version: 1
-              Configuration:
-                Owner: nimbusscale
-                OAuthToken: !Ref OAuthToken
-                Repo: TheBestest
-                Branch: master
-                PollForSourceChanges: true
-              OutputArtifacts:
-                - Name: thebestest-source
-        - Name: UnitTest
-          Actions:
-            - Name: UnitTest
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              Configuration:
-                ProjectName: !Ref theBestestUnitTest
-              InputArtifacts:
-                - Name: thebestest-source
-        - Name: Package
-          Actions:
-            - Name: Package
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              Configuration:
-                ProjectName: !Ref theBestestBuild
-              InputArtifacts:
-                - Name: thebestest-source
-              OutputArtifacts:
-                - Name: thebestest-deploy-template
-        - Name: DeployStack
-          Actions:
-            - Name: CreateChangeSet
-              RunOrder: 1
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                StackName: thebestest-stack
-                ActionMode: CHANGE_SET_REPLACE
-                Capabilities: CAPABILITY_IAM
-                ChangeSetName: thebestest-stack-changeset
-                TemplatePath: thebestest-deploy-template::stack_deploy.yaml
-                RoleArn: !GetAtt cloudformationRole.Arn
-              InputArtifacts:
-                - Name: thebestest-deploy-template
-            - Name: ExecuteChangeSet
-              RunOrder: 2
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                StackName: thebestest-stack
-                ActionMode: CHANGE_SET_EXECUTE
-                ChangeSetName: thebestest-stack-changeset
-            - Name: DeployApi
-              RunOrder: 3
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: 1
-              Configuration:
-                FunctionName: !Ref deployApiFunction
-                UserParameters: "{\"stackName\": \"thebestest-stack\", \"stageName\": \"v1\"}"
-
+Outputs:
+  OAuthToken:
+    Value: !Ref OAuthToken
+    Export:
+      Name: theBestest-OAuthToken
+  pipelineRoleArn:
+    Value: !GetAtt pipelineRole.Arn
+    Export:
+      Name: theBestest-pipelineRoleArn
+  cloudformationRoleArn:
+    Value: !GetAtt cloudformationRole.Arn
+    Export:
+      Name: theBestest-cloudformationRoleArn
+  theBestestUnitTestId:
+    Value: !Ref theBestestUnitTest
+    Export:
+      Name: theBestest-theBestestUnitTestId
+  theBestestBuildId:
+    Value: !Ref theBestestBuild
+    Export:
+      Name: theBestest-theBestestBuildId
+  deployApiFunctionId:
+    Value: !Ref deployApiFunction
+    Export:
+      Name: theBestest-deployApiFunctionId
 
 
 

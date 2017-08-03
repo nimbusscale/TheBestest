@@ -1,6 +1,5 @@
 .idea
 .cache
-stack_deploy.yaml
-pipeline_deploy.yaml
+*_deploy.yaml
 testing/dynamodb/**
 testing/dynamodb_local_latest.zip
