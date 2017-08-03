@@ -10,7 +10,6 @@ logger.setLevel(logging.INFO)
 
 if ('AWS_DEFAULT_REGION' in os.environ
     and os.environ['AWS_DEFAULT_REGION'] != 'LOCAL'):
-    print(os.environ['AWS_DEFAULT_REGION'])
     region = os.environ['AWS_DEFAULT_REGION']
     logger.info("Using DynamoDB instance in {} region".format(region))
     dynamodb = boto3.resource(service_name='dynamodb',

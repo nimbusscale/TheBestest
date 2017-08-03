@@ -3,7 +3,8 @@ from get_items_by_user import *
 
 
 def test_lambda_handler():
-    event = {'user_id': 'jjk3'}
+    event = {'metadata': {'userId': 'jjk3',
+                          'requestId': __name__}}
     expected_items = [{'user_id': 'jjk3',
                        'category_name': 'bbq',
                        'place_name': 'central bbq'}]
