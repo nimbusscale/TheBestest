@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from get_items_by_user import *
+from get_items import *
 
 
 def test_lambda_handler():

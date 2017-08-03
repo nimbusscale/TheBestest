@@ -130,11 +130,11 @@ Resources:
   getItemsFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Code: ../functions/get_items_by_user
+      Code: ../functions/get_items
       Environment:
         Variables:
           itemsTableName: !Ref itemTable
-      Handler: get_items_by_user.lambda_handler
+      Handler: get_items.lambda_handler
       Role: !GetAtt lambdaRole.Arn
       Runtime: python3.6
 
