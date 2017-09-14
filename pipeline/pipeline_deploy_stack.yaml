@@ -58,12 +58,16 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub "thebestest-${envName}-stack"
+                StackName: !Sub "thebestest-${envName}"
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
-                ChangeSetName: !Sub "thebestest-${envName}-stack-changeset"
+                ChangeSetName: !Sub "thebestest-${envName}-changeset"
                 TemplatePath: thebestest-deploy-template::stack_deploy.yaml
                 RoleArn: !ImportValue theBestest-cloudformationRoleArn
+                ParameterOverrides: !Sub |
+                  {
+                    "envName" : "${envName}"
+                  }
               InputArtifacts:
                 - Name: thebestest-deploy-template
             - Name: ExecuteChangeSet
@@ -74,9 +78,9 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub "thebestest-${envName}-stack"
+                StackName: !Sub "thebestest-${envName}"
                 ActionMode: CHANGE_SET_EXECUTE
-                ChangeSetName: !Sub "thebestest-${envName}-stack-changeset"
+                ChangeSetName: !Sub "thebestest-${envName}-changeset"
             - Name: DeployApi
               RunOrder: 3
               ActionTypeId:
@@ -86,7 +90,7 @@ Resources:
                 Version: 1
               Configuration:
                 FunctionName: !ImportValue theBestest-deployApiFunctionId
-                UserParameters: !Sub "{\"stackName\": \"thebestest-${envName}-stack\", \"stageName\": \"thebestest-${envName}\"}"
+                UserParameters: !Sub "{\"stackName\": \"thebestest-${envName}\", \"stageName\": \"${envName}\"}"
 
 
 
