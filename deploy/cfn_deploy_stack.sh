@@ -1,4 +1,5 @@
 #!/bin/bash
+#Script to do manual deployment of theBestest stack. Deployment should ideally be done via the pipeline.
 set -e
 
 echo "## Validate"
