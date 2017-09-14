@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack for TheBestest App
+Parameters:
+  envName:
+    Description: Name of the environment to be deployed
+    Type: String
 Resources:
 ###############################################################################
 ## Roles
@@ -40,7 +44,7 @@ Resources:
   apiGw:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: thebestest-api
+      Name: !Sub thebestest-${envName}-api
       Description: Rest API for the bestest
 
   apiAuthorizer:
@@ -56,7 +60,7 @@ Resources:
   userPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: thebestest-userpool
+      UserPoolName: !Sub thebestest-${envName}-userpool
       Policies:
         PasswordPolicy:
           MinimumLength: 6
@@ -68,7 +72,7 @@ Resources:
   adminClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: thebestest-adminclient
+      ClientName: !Sub thebestest-${envName}-adminclient
       UserPoolId: !Ref userPool
       ExplicitAuthFlows:
         - ADMIN_NO_SRP_AUTH
@@ -79,7 +83,7 @@ Resources:
   itemTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: thebestest_items
+      TableName: !Sub thebestest_${envName}_items
       KeySchema:
         - AttributeName: user_id
           KeyType: HASH
