@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A pipeline to test and validate TheBestest Code
+Parameters:
+  gitBranch:
+    Description: The branch which will be checked out from GitHub.
+    Type: String
+    Default: master
+Resources:
+  theBestestPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Ref AWS::StackName
+      ArtifactStore:
+        Location: !ImportValue theBestest-pipelineBucket
+        Type: S3
+      RoleArn: !ImportValue theBestest-pipelineRoleArn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Master
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              Configuration:
+                Owner: nimbusscale
+                OAuthToken: !ImportValue theBestest-OAuthToken
+                Repo: TheBestest
+                Branch: !Ref gitBranch
+                PollForSourceChanges: true
+              OutputArtifacts:
+                - Name: thebestest-source
+        - Name: UnitTest
+          Actions:
+            - Name: UnitTest
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !ImportValue theBestest-theBestestUnitTestId
+              InputArtifacts:
+                - Name: thebestest-source
+
+
+
+
+
+
