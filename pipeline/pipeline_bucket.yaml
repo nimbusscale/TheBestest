@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Pipeline for TheBestest App
+Description: S3 bucket used by TheBestest Pipeline
 Resources:
   pipelineBucket:
     Type: AWS::S3::Bucket

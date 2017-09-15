@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Pipeline for TheBestest App
+Description: Pipeline Infra for TheBestest App
 Parameters:
   OAuthToken:
     Type: String
@@ -191,7 +191,7 @@ Resources:
       ServiceRole: !GetAtt buildRole.Arn
       Source:
         Type: CODEPIPELINE
-        BuildSpec: pipeline/unittest-buildspec.yaml
+        BuildSpec: pipeline/buildspec-unittest.yaml
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
@@ -206,7 +206,7 @@ Resources:
       ServiceRole: !GetAtt buildRole.Arn
       Source:
         Type: CODEPIPELINE
-        BuildSpec: pipeline/package-buildspec.yaml
+        BuildSpec: pipeline/buildspec-package.yaml
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
