@@ -40,7 +40,7 @@ function prep_lambdas() {
 
 rsync -av ./functions/ ./functions_deploy/
 
-pip install github3.py -t ./functions_deploy/test_deploy_mgr/
+pip install github3.py -t ./functions_deploy/pipeline_mgr/
 
 }
 
