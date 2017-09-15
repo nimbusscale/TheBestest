@@ -45,9 +45,17 @@ def get_dynamodb_table_specs(template_path):
     cfn_yaml = yaml.safe_load(cfn_text.replace("!", ""))
 
     for resource_id in cfn_yaml['Resources']:
-        if cfn_yaml['Resources'][resource_id]['Type'] == "AWS::DynamoDB::Table":
+        if (cfn_yaml['Resources'][resource_id]['Type'] ==
+                "AWS::DynamoDB::Table"):
             logging.info("Identified CFN Resource {}".format(resource_id))
             properties = cfn_yaml['Resources'][resource_id]['Properties']
+            # Replace ${envName} with unit test, this is done by CFN, but this
+            # function consumed the raw template and need to do the
+            # substitution too.
+            properties['TableName'] = properties['TableName'].replace(
+                '${envName}', 'unittest')
+            properties['TableName'] = properties['TableName'].replace(
+                'Sub ', '')
             dynamodb_table_specs[resource_id] = properties
     return dynamodb_table_specs
 
