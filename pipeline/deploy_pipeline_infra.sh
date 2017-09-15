@@ -34,6 +34,16 @@ do
 done
 }
 
+function prep_lambdas() {
+# Copies functions to temp location and then installs 3rd party packages into
+# temp copy. Temp location is referenced by the cfn template.
+
+rsync -av ./functions/ ./functions_deploy/
+
+pip install github3.py -t ./functions_deploy/test_deploy_mgr/
+
+}
+
 function cfn_deploy() {
 STACK_NAME="thebestest-pipeline-infra"
 
@@ -54,5 +64,7 @@ aws cloudformation deploy   --template-file pipeline_infra_deploy.yaml \
 
 
 arg_parse $@
+prep_lambdas
 cfn_deploy
 rm *_deploy.yaml
+rm -rf functions_deploy
