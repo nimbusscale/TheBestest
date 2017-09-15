@@ -67,3 +67,4 @@ aws cloudformation deploy   --template-file pipeline_stack_${PIPELINE}_deploy.ya
 
 arg_parse $@
 cfn_deploy
+rm *_deploy.yaml

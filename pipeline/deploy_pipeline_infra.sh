@@ -55,3 +55,4 @@ aws cloudformation deploy   --template-file pipeline_infra_deploy.yaml \
 
 arg_parse $@
 cfn_deploy
+rm *_deploy.yaml
