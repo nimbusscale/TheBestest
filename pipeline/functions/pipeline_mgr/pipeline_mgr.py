@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# webhook test 5
+# webhook test 6
 import logging
 import github3
 
@@ -19,7 +19,7 @@ def webhook_handler(event, context):
         pr_info['branch'] = event['pull_request']['head']['ref']
         pr_info['sha'] = event['pull_request']['head']['sha']
     except:
-        log(event)
+        logger.error(event)
         raise Exception("Invalid PR Webhook")
     pipeline_info['pr_info'] = pr_info
     return pipeline_info
