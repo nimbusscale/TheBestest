@@ -18,7 +18,7 @@ Resources:
         - PolicyName: cloudformationPolicy
           PolicyDocument:
             Version: 2012-10-17
-            # Todo consider locking down perms
+            # Todo consider locking down perms more
             Statement:
               - Effect: Allow
                 Action:
@@ -63,6 +63,11 @@ Resources:
                   - cognito-idp:UpdateUserPool
                   - cognito-idp:UpdateUserPoolClient
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - states:CreateStateMachine
+                  - states:DeleteStateMachine
+                Resource: !Join [ "", ["arn:aws:states:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":stateMachine:*" ] ]
 
   pipelineRole:
     Type: AWS::IAM::Role
@@ -104,7 +109,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: !GetAtt deployApiFunction.Arn
+                Resource: !GetAtt deployApi.Arn
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -116,6 +121,195 @@ Resources:
                 Resource:
                   - !GetAtt theBestestBuild.Arn
                   - !GetAtt theBestestUnitTest.Arn
+
+###############################################################################
+## Pipeline Manager
+###############################################################################
+
+  pipelineMgrLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  webhookHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.webhook_handler
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+
+  pipelineMgrStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelineMgrStateMachinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - lambda:InvokeFunction
+                 # Todo Lockdown?
+                Resource: "*"
+
+  pipelineMgrStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: !Sub |
+        {
+          "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
+          "StartAt": "handle_webhook",
+          "States": {
+            "handle_webhook": {
+              "Type": "Task",
+              "Resource": "${webhookHandler.Arn}",
+              "Next": "End"
+            },
+            "End": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt pipelineMgrStateMachineRole.Arn
+
+  pipelineMgrGWRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelineMgrGWPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - states:StartExecution
+                Resource: !Ref pipelineMgrStateMachine
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  pipelineMgrGW:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub thebestest-pipelinemgr-api
+      Description: Rest API for the bestest pipeline manager
+
+  webhookEndPointResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt pipelineMgrGW.RootResourceId
+      PathPart: webhook
+      RestApiId: !Ref pipelineMgrGW
+
+  webhookEndPointMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref pipelineMgrGW
+      ResourceId: !Ref webhookEndPointResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
+        Credentials: !GetAtt pipelineMgrGWRole.Arn
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: !Sub |
+            {
+              "input": "$util.escapeJavaScript($input.json('$'))",
+              "name": "$context.requestId",
+              "stateMachineArn": "${pipelineMgrStateMachine}"
+            }
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+
+  pipelineMgrDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: webhookEndPointMethod
+    Properties:
+      RestApiId: !Ref pipelineMgrGW
+
+  pipelineMgrStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: "pipelinemgr"
+      RestApiId: !Ref pipelineMgrGW
+      DeploymentId: !Ref pipelineMgrDeployment
+
+###############################################################################
+## Deploy API Function
+###############################################################################
+
+  deployApiLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: deployApiLambdaPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - codepipeline:PutJobFailureResult
+                 - codepipeline:PutJobSuccessResult
+                 - cloudformation:DescribeStacks
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+
+  deployApi:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/stage_deploy
+      Handler: stage_deploy.lambda_handler
+      Role: !GetAtt deployApiLambdaRole.Arn
+      Runtime: python3.6
+
+###############################################################################
+## CodeBuild Projects
+###############################################################################
 
   buildRole:
     Type: AWS::IAM::Role
@@ -148,44 +342,6 @@ Resources:
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
 
-  deployApiLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: deployApiLambdaPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                 - codepipeline:PutJobFailureResult
-                 - codepipeline:PutJobSuccessResult
-                 - cloudformation:DescribeStacks
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - apigateway:*
-                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-
-  deployApiFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/stage_deploy
-      Handler: stage_deploy.lambda_handler
-      Role: !GetAtt deployApiLambdaRole.Arn
-      Runtime: python3.6
-
   theBestestUnitTest:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -216,6 +372,10 @@ Resources:
       Artifacts:
         Type: CODEPIPELINE
 
+###############################################################################
+## Outputs
+###############################################################################
+
 Outputs:
   OAuthToken:
     Value: !Ref OAuthToken
@@ -238,7 +398,7 @@ Outputs:
     Export:
       Name: theBestest-theBestestBuildId
   deployApiFunctionId:
-    Value: !Ref deployApiFunction
+    Value: !Ref deployApi
     Export:
       Name: theBestest-deployApiFunctionId
 
