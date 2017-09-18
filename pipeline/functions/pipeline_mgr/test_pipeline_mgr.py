@@ -16,7 +16,7 @@ def test_webhook_handler_valid(webhook_json):
     response = webhook_handler(event, context)
     expected = {
         'pr_info': {
-            'number': 1,
+            'url': 'https://api.github.com/repos/nimbusscale/TheBestest/pulls/1',
             'title': 'test1',
             'branch': 'webhook_testing',
             'sha': '13d0b21380880d6460dfd5d22ee111d51a5fb684'},

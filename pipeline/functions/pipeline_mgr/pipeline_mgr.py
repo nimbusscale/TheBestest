@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# webhook test 8
+# webhook test 9
 import logging
 import github3
 
@@ -14,7 +14,7 @@ def webhook_handler(event, context):
     pipeline_info = {}
     try:
         pr_info = {}
-        pr_info['number'] = event['number']
+        pr_info['url'] = event['pull_request']['url']
         pr_info['title'] = event['pull_request']['title']
         pr_info['branch'] = event['pull_request']['head']['ref']
         pr_info['sha'] = event['pull_request']['head']['sha']
@@ -31,6 +31,6 @@ def webhook_handler(event, context):
     pipeline_info['action'] = pipeline_action
     logger.info("{} for PR {} (#{}) of branch {}".format(pipeline_action,
                                                          pr_info['title'],
-                                                         pr_info['number'],
+                                                         pr_info['url'],
                                                          pr_info['branch']))
     return pipeline_info
