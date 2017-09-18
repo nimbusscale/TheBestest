@@ -22,4 +22,5 @@ def webhook_handler(event, context):
         logger.error(event)
         raise Exception("Invalid PR Webhook")
     pipeline_info['pr_info'] = pr_info
+    logger.info(pipeline_info)
     return pipeline_info
