@@ -5,9 +5,12 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: thebestest-pipeline
+      VersioningConfiguration:
+        Status: Enabled
       LifecycleConfiguration:
         Rules:
           - ExpirationInDays: 7
+            NoncurrentVersionExpirationInDays: 1
             Status: Enabled
 Outputs:
   bucketId:
