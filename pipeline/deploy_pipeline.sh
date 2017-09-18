@@ -1,15 +1,12 @@
 #!/bin/bash
 set -e
 
-
-
 function usage() {
 cat <<EOM
 Usage: `basename $0` --pipeline [value] --env [value] [OPTION]
 Arguments:
     --pipeline          Pipeline type: test or deploy (defaults to test)
-    --branch            Git branch to checkout (defaults to master)
-    --env               Environment name (defaults to sanitized branch name)
+    --env               Environment name (defaults to dev)
 EOM
 
 exit
@@ -18,8 +15,7 @@ exit
 function arg_parse() {
 # Default params, maybe overrided by args
 PIPELINE="test"
-GIT_BRANCH="master"
-ENV=${GIT_BRANCH//[\_\.]/-}
+ENV="dev"
 
 # Parse Args
 while [[ $# -gt 1 ]]
@@ -27,10 +23,6 @@ do
     ARG="$1"
 
     case $ARG in
-        -b|--branch)
-        GIT_BRANCH="$2"
-        shift
-        ;;
         -e|--env)
         ENV="$2"
         shift
@@ -62,7 +54,7 @@ echo "## Deploy"
 aws cloudformation deploy   --template-file pipeline_stack_${PIPELINE}_deploy.yaml \
                             --stack-name ${STACK_NAME} \
                             --capabilities CAPABILITY_IAM \
-                            --parameter-overrides "gitBranch"=${GIT_BRANCH} "envName"=${ENV}
+                            --parameter-overrides "envName"=${ENV}
 }
 
 arg_parse $@
