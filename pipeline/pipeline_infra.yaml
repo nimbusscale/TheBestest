@@ -228,6 +228,7 @@ Resources:
 
   pipelineMgrGWRole:
     Type: AWS::IAM::Role
+    DependsOn: pipelineMgrStateMachine
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -244,11 +245,7 @@ Resources:
               - Effect: Allow
                 Action:
                  - states:StartExecution
-                 # AWS Bug: when a statemachine is updated it is replaced
-                 # the IAM policy is not updated as well to reflect the new ID
-                 # So after an update this policy would become invalid if
-                 # !Ref pipelineMgrStateMachine is used
-                Resource: "*"
+                Resource: !Ref pipelineMgrStateMachine
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
@@ -267,6 +264,7 @@ Resources:
 
   webhookEndPointMethod:
     Type: AWS::ApiGateway::Method
+    DependsOn: pipelineMgrStateMachine
     Properties:
       RestApiId: !Ref pipelineMgrGW
       ResourceId: !Ref webhookEndPointResource
