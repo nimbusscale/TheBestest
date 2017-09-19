@@ -136,6 +136,15 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
@@ -146,6 +155,16 @@ Resources:
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.webhook_handler
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+
+  retrieveSource:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.retrieve_source
       Role: !GetAtt pipelineMgrLambdaRole.Arn
       Runtime: python3.6
 
@@ -176,11 +195,27 @@ Resources:
       DefinitionString: !Sub |
         {
           "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
-          "StartAt": "handle_webhook",
+          "StartAt": "HandleWebhook",
           "States": {
-            "handle_webhook": {
+            "HandleWebhook": {
               "Type": "Task",
               "Resource": "${webhookHandler.Arn}",
+              "Next": "PipelineAction"
+            },
+            "PipelineAction": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.action",
+                  "StringEquals": "test",
+                  "Next": "TestSource"
+                }
+              ],
+              "Default": "End"
+            },
+            "TestSource": {
+              "Type": "Task",
+              "Resource": "${retrieveSource.Arn}",
               "Next": "End"
             },
             "End": {
