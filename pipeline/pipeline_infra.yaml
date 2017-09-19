@@ -290,7 +290,9 @@ Resources:
 
   pipelineMgrDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: webhookEndPointMethod
+    DependsOn:
+      - pipelineMgrStateMachine
+      - webhookEndPointMethod
     Properties:
       RestApiId: !Ref pipelineMgrGW
 
