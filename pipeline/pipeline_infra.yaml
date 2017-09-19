@@ -244,7 +244,11 @@ Resources:
               - Effect: Allow
                 Action:
                  - states:StartExecution
-                Resource: !Ref pipelineMgrStateMachine
+                 # AWS Bug: when a statemachine is updated it is replaced
+                 # the IAM policy is not updated as well to reflect the new ID
+                 # So after an update this policy would become invalid if
+                 # !Ref pipelineMgrStateMachine is used
+                Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
