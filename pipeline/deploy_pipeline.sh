@@ -6,7 +6,8 @@ cat <<EOM
 Usage: `basename $0` --pipeline [value] --env [value] [OPTION]
 Arguments:
     --pipeline          Pipeline type: test or deploy (defaults to test)
-    --env               Environment name (defaults to dev)
+    --env               Environment name (only used for deploy pipelines and
+                        defaults to "stage")
 EOM
 
 exit
@@ -15,7 +16,7 @@ exit
 function arg_parse() {
 # Default params, maybe overrided by args
 PIPELINE="test"
-ENV="dev"
+ENV="stage"
 
 # Parse Args
 while [[ $# -gt 1 ]]
@@ -40,7 +41,11 @@ done
 }
 
 function cfn_deploy() {
-STACK_NAME="thebestest-${ENV}-${PIPELINE}-pipeline"
+if [[ "$PIPELINE" == "deploy" ]]; then
+    STACK_NAME="thebestest-${ENV}-deploy-pipeline"
+else
+    STACK_NAME="thebestest-test-pipeline"
+fi
 
 echo "## Validate"
 aws cloudformation validate-template --template-body file://pipeline_${PIPELINE}_stack.yaml
