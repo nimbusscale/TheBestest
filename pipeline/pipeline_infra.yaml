@@ -194,7 +194,7 @@ Resources:
     Properties:
       DefinitionString: !Sub |
         {
-          "Comment": "New Automatic testing or deployment of code kicked off by GH Webhooks",
+          "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
           "StartAt": "HandleWebhook",
           "States": {
             "HandleWebhook": {
@@ -288,26 +288,23 @@ Resources:
       MethodResponses:
         - StatusCode: 200
 
-  pipelineMgrDeployment:
-    Type: AWS::ApiGateway::Deployment
-    DependsOn:
-      - pipelineMgrStateMachine
-      - webhookEndPointMethod
-    Properties:
-      RestApiId: !Ref pipelineMgrGW
-
-  pipelineMgrStage:
-    Type: AWS::ApiGateway::Stage
-    DependsOn: pipelineMgrStateMachine
-    Properties:
-      StageName: "pipelinemgr"
-      RestApiId: !Ref pipelineMgrGW
-      DeploymentId: !Ref pipelineMgrDeployment
-      MethodSettings:
-        - ResourcePath: '/*'
-          HttpMethod: '*'
-          DataTraceEnabled: true
-          LoggingLevel: INFO
+#  pipelineMgrDeployment:
+#    Type: AWS::ApiGateway::Deployment
+#    DependsOn: webhookEndPointMethod
+#    Properties:
+#      RestApiId: !Ref pipelineMgrGW
+#
+#  pipelineMgrStage:
+#    Type: AWS::ApiGateway::Stage
+#    Properties:
+#      StageName: "pipelinemgr"
+#      RestApiId: !Ref pipelineMgrGW
+#      DeploymentId: !Ref pipelineMgrDeployment
+#      MethodSettings:
+#        - ResourcePath: '/*'
+#          HttpMethod: '*'
+#          DataTraceEnabled: true
+#          LoggingLevel: INFO
 
 ###############################################################################
 ## Deploy API Function
