@@ -108,10 +108,6 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
-                  - lambda:InvokeFunction
-                Resource: !GetAtt deployApi.Arn
-              - Effect: Allow
-                Action:
                   - iam:PassRole
                 Resource: !GetAtt cloudformationRole.Arn
               - Effect: Allow
@@ -145,6 +141,10 @@ Resources:
                 Action:
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
@@ -288,66 +288,22 @@ Resources:
       MethodResponses:
         - StatusCode: 200
 
-#  pipelineMgrDeployment:
-#    Type: AWS::ApiGateway::Deployment
-#    DependsOn: webhookEndPointMethod
-#    Properties:
-#      RestApiId: !Ref pipelineMgrGW
-#
-#  pipelineMgrStage:
-#    Type: AWS::ApiGateway::Stage
-#    Properties:
-#      StageName: "pipelinemgr"
-#      RestApiId: !Ref pipelineMgrGW
-#      DeploymentId: !Ref pipelineMgrDeployment
-#      MethodSettings:
-#        - ResourcePath: '/*'
-#          HttpMethod: '*'
-#          DataTraceEnabled: true
-#          LoggingLevel: INFO
-
-###############################################################################
-## Deploy API Function
-###############################################################################
-
-  deployApiLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: deployApiLambdaPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                 - codepipeline:PutJobFailureResult
-                 - codepipeline:PutJobSuccessResult
-                 - cloudformation:DescribeStacks
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - apigateway:*
-                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-
-
-  deployApi:
+  apiGwStageDeployer:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/stage_deploy
-      Handler: stage_deploy.lambda_handler
-      Role: !GetAtt deployApiLambdaRole.Arn
+      Code: functions_deploy/apigw_stage_deployer
+      Handler: apigw_stage_deployer.deploy_stage
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
       Runtime: python3.6
+
+  pipelineMgrStageDeployer:
+    Type: Custom::ApiGwStageDeployer
+    Properties:
+      ServiceToken: !GetAtt apiGwStageDeployer.Arn
+      StageName: pipelinemgr
+      RestApiId: !Ref pipelineMgrGW
 
 ###############################################################################
 ## CodeBuild Projects
@@ -413,6 +369,49 @@ Resources:
         Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
       Artifacts:
         Type: CODEPIPELINE
+
+###############################################################################
+## Deploy API Function
+###############################################################################
+
+  deployApiLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: deployApiLambdaPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - codepipeline:PutJobFailureResult
+                 - codepipeline:PutJobSuccessResult
+                 - cloudformation:DescribeStacks
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  deployApi:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/apigw_stage_deployer
+      Handler: apigw_stage_deployer.deploy_stage
+      Role: !GetAtt deployApiLambdaRole.Arn
+      Runtime: python3.6
+
 
 ###############################################################################
 ## Outputs
