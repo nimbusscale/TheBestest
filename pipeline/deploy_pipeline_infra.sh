@@ -12,11 +12,6 @@ exit
 }
 
 function arg_parse() {
-if [[ $# -lt 1 ]] ; then
-    usage
-fi
-
-# Parse Args
 while [[ $# -gt 1 ]]
 do
     ARG="$1"
@@ -56,10 +51,15 @@ aws cloudformation package  --template-file pipeline_infra.yaml \
                             --output-template-file pipeline_infra_deploy.yaml
 
 echo "## Deploy"
-aws cloudformation deploy   --template-file pipeline_infra_deploy.yaml \
-                            --stack-name ${STACK_NAME} \
-                            --capabilities CAPABILITY_IAM \
-                            --parameter-overrides "OAuthToken"=${TOKEN}
+OPTS="--template-file pipeline_infra_deploy.yaml \
+      --stack-name ${STACK_NAME} \
+      --capabilities CAPABILITY_IAM"
+
+if [[ $TOKEN ]] ; then
+    OPTS="${OPTS} --parameter-overrides "OAuthToken"=${TOKEN}"
+fi
+
+aws cloudformation deploy $OPTS
 }
 
 
