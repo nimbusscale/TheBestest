@@ -62,12 +62,15 @@ Resources:
           PolicyDocument:
             Version: 2012-10-17
             Statement:
-                # Todo unclear why restricted access no longer working
-                # if locked down perms are used source stage fails
-                # cloudtrail and s3 logs have been no help
               - Effect: Allow
-                Action: "s3:*"
-                Resource: "*"
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
               - Effect: Allow
                 Action:
                   - codebuild:BatchGetBuilds
