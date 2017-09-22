@@ -27,10 +27,14 @@ Resources:
                 Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest*:log-stream:*" ] ]
               - Effect: Allow
                 Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
+                  - s3:Get*
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
 
   theBestestUnitTest:
     Type: AWS::CodeBuild::Project
@@ -64,12 +68,13 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - s3:GetObject
+                  - s3:Get*
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
-                  - s3:ListBucket
+                  - s3:Get*
+                  - s3:List*
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
               - Effect: Allow
                 Action:
