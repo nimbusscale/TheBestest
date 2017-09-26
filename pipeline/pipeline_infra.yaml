@@ -170,6 +170,7 @@ Resources:
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
+          S3_BUCKET: !ImportValue theBestest-pipelineBucket
 
   pipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
