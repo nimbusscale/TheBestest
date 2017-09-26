@@ -15,7 +15,8 @@ import os
 import shutil
 from subprocess import run
 
-
+import boto3
+import github3
 
 
 def arg_parse():
@@ -30,6 +31,7 @@ def arg_parse():
 
     return parser.parse_args()
 
+
 def prep_lambdas():
     """Copies functions to temp location and then installs 3rd party packages
     into temp copy. Temp location is referenced by the cfn template.
@@ -42,6 +44,7 @@ def prep_lambdas():
 
     gh_install = "pip install github3.py -t ./functions_deploy/pipeline_mgr/"
     run(gh_install.split(), check=True)
+
 
 def cfn_deploy():
     print("## Validate")
@@ -69,6 +72,7 @@ def cfn_deploy():
     deploy_cmd = "aws cloudformation deploy {}".format(deploy_opts)
     run(deploy_cmd.split(), check=True)
 
+
 def cleanup():
     if os.path.exists('./functions_deploy'):
         shutil.rmtree('./functions_deploy')
@@ -76,11 +80,62 @@ def cleanup():
     if os.path.exists('pipeline_mgr_stack_deploy.yaml'):
         os.remove('pipeline_mgr_stack_deploy.yaml')
 
+
+def get_oauth_from_cfn(stack_name):
+    cfn = boto3.client('cloudformation')
+    stack = cfn.describe_stacks(StackName=stack_name)['Stacks'][0]
+    for param in stack['Parameters']:
+        if param['ParameterKey'] == 'OAuthToken':
+            return param['ParameterValue']
+    else:
+        raise Exception("stack {} doesn't have OAuthToken as a "
+                        "Parameter".format(stack_name))
+
+
+def update_webhook():
+    # Get Webhook URL
+    pipelinemgr_api_name = 'thebestest-pipelinemgr-api'
+    stage_name = 'pipelinemgr'
+    region = boto3.session.Session().region_name
+    apigw = boto3.client('apigateway')
+    rest_apis = apigw.get_rest_apis()['items']
+    for rest_api in rest_apis:
+        if rest_api['name'] == pipelinemgr_api_name:
+            api_id = rest_api['id']
+            break
+    else:
+        raise Exception("Unabel to find Rest API with name {}.".format(
+            pipelinemgr_api_name
+        ))
+
+    api_url = "https://{}.execute-api.{}.amazonaws.com/{}/webhook".format(
+        api_id, region, stage_name
+    )
+    # Create or Update Webhook config
+    token = (args.token if args.token else
+             get_oauth_from_cfn('thebestest-pipeline-mgr'))
+    gh = github3.login(token=token)
+    repo = gh.repository('nimbusscale', 'TheBestest')
+    webhooks = repo.iter_hooks()
+    webhook_config = {'content_type': 'json',
+                      'insecure_ssl': '0',
+                      'url': api_url}
+    for webhook in webhooks:
+        url = webhook.config['url']
+        if stage_name in url:
+            webhook.edit(config=webhook_config)
+            break
+    else:
+        repo.create_hook('web',
+                         webhook_config,
+                         events=['pull_request'])
+
 if __name__ == '__main__':
     args = arg_parse()
     prep_lambdas()
     cfn_deploy()
     cleanup()
+    update_webhook()
 
 
 
