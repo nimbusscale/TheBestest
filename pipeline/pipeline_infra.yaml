@@ -167,6 +167,9 @@ Resources:
       Handler: pipeline_mgr.retrieve_source
       Role: !GetAtt pipelineMgrLambdaRole.Arn
       Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
 
   pipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
