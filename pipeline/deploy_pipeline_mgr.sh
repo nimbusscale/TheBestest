@@ -14,7 +14,7 @@ exit
 }
 
 function arg_parse() {
-STACK_NAME="thebestest-pipeline-infra"
+STACK_NAME="thebestest-pipeline-mgr"
 
 while [[ $# -gt 1 ]]
 do

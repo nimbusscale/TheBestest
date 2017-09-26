@@ -42,9 +42,9 @@ done
 
 function cfn_deploy() {
 if [[ "$PIPELINE" == "deploy" ]]; then
-    STACK_NAME="thebestest-${ENV}-deploy-pipeline"
+    STACK_NAME="thebestest-pipeline-deploy-${ENV}"
 else
-    STACK_NAME="thebestest-test-pipeline"
+    STACK_NAME="thebestest-pipeline-test"
 fi
 
 echo "## Validate"

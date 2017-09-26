@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Pipeline Infra for TheBestest App
+Parameters:
+  OAuthToken:
+    Type: String
+Resources:
+  pipelineMgrLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  webhookHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.webhook_handler
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+
+  retrieveSource:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.retrieve_source
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
+          S3_BUCKET: !ImportValue theBestest-pipelineBucket
+
+  pipelineMgrStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelineMgrStateMachinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - lambda:InvokeFunction
+                 # Todo Lockdown?
+                Resource: "*"
+
+  pipelineMgrStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: !Sub |
+        {
+          "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
+          "StartAt": "HandleWebhook",
+          "States": {
+            "HandleWebhook": {
+              "Type": "Task",
+              "Resource": "${webhookHandler.Arn}",
+              "Next": "PipelineAction"
+            },
+            "PipelineAction": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.action",
+                  "StringEquals": "test",
+                  "Next": "TestSource"
+                }
+              ],
+              "Default": "End"
+            },
+            "TestSource": {
+              "Type": "Task",
+              "Resource": "${retrieveSource.Arn}",
+              "Next": "End"
+            },
+            "End": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt pipelineMgrStateMachineRole.Arn
+
+  pipelineMgrGWRole:
+    Type: AWS::IAM::Role
+    DependsOn: pipelineMgrStateMachine
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelineMgrGWPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                 - states:StartExecution
+                Resource: !Ref pipelineMgrStateMachine
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  pipelineMgrGW:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub thebestest-pipelinemgr-api
+      Description: Rest API for the bestest pipeline manager
+
+  webhookEndPointResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt pipelineMgrGW.RootResourceId
+      PathPart: webhook
+      RestApiId: !Ref pipelineMgrGW
+
+  webhookEndPointMethod:
+    Type: AWS::ApiGateway::Method
+    DependsOn: pipelineMgrStateMachine
+    Properties:
+      RestApiId: !Ref pipelineMgrGW
+      ResourceId: !Ref webhookEndPointResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
+        Credentials: !GetAtt pipelineMgrGWRole.Arn
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: !Sub |
+            {
+              "input": "$util.escapeJavaScript($input.json('$'))",
+              "name": "$context.requestId",
+              "stateMachineArn": "${pipelineMgrStateMachine}"
+            }
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+
+  apiGwStageDeployer:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/apigw_stage_deployer
+      Handler: apigw_stage_deployer.deploy_stage
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+
+  pipelineMgrStageDeployer:
+    Type: Custom::ApiGwStageDeployer
+    DependsOn: webhookEndPointMethod
+    Properties:
+      ServiceToken: !GetAtt apiGwStageDeployer.Arn
+      StageName: pipelinemgr
+      RestApiId: !Ref pipelineMgrGW
+
+
+
