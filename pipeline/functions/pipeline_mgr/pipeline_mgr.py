@@ -81,7 +81,8 @@ def retrieve_source(event, context):
     repackage_source(download_path, zipball_path)
     # Upload zipball from S3
     s3 = boto3.client('s3')
-    logger.info("Uploading zipball to s3://{}/{}".format(bucket, zipball_name))
+    logger.info("Uploading {}} to s3://{}/{}".format(zipball_path, bucket,
+                                                     zipball_name))
     with open(zipball_path, 'rb') as zipball:
         response = s3.put_object(Bucket=bucket,
                                  Key=zipball_name,
@@ -91,6 +92,8 @@ def retrieve_source(event, context):
     # Cleanup
     logger.info("Removing {}".format(download_path))
     os.remove(download_path)
+    logger.info("Removing {}".format(zipball_path))
+    os.remove(zipball_path)
     # Return
     event['etag'] = etag
     return event
