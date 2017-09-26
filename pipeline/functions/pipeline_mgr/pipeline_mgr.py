@@ -2,6 +2,7 @@
 # webhook test 14
 import logging
 import os
+from zipfile import ZipFile, ZIP_DEFLATED
 
 import boto3
 import github3
@@ -41,6 +42,24 @@ def webhook_handler(event, context):
                                                          pr_info['branch']))
     return pipeline_info
 
+def repackage_source(src_zip_path, dest_zip_path):
+    """Repackages a zipball retrieved from Github to be as expected by
+    codepipeline.
+    """
+    logger.info("Repackaging {} to {}".format(src_zip_path, dest_zip_path))
+    work_path = '/tmp'
+    with ZipFile(src_zip_path) as src_zip:
+        zip_info = src_zip.infolist()
+        unzip_dir = work_path + '/' + zip_info[0].filename
+        src_zip.extractall(path=work_path)
+    with ZipFile(dest_zip_path, mode='w',
+                 compression=ZIP_DEFLATED) as dest_zip:
+        for root, dirs, files in os.walk(unzip_dir):
+            for file in files:
+                src_path = os.path.join(root, file)
+                arc_path = src_path.replace(unzip_dir, '')
+                dest_zip.write(src_path, arcname=arc_path)
+
 def retrieve_source(event, context):
     """Lambda that retrieves a zipball of source based on a SHA and uploads
     it to S3
@@ -56,14 +75,16 @@ def retrieve_source(event, context):
     download_path = '/tmp/' + sha + '.zip'
     logger.info("Downloading zipball to {}".format(download_path))
     repo.archive('zipball', path=download_path, ref=sha)
+    # Repackage
+    zipball_name = 'thebestest-source.zip'
+    zipball_path = '/tmp/' + zipball_name
+    repackage_source(download_path, zipball_path)
     # Upload zipball from S3
     s3 = boto3.client('s3')
-    logger.info("Uploading zipball to s3://{}/thebestest-source.zip".format(
-        bucket
-    ))
-    with open(download_path, 'rb') as zipball:
+    logger.info("Uploading zipball to s3://{}/{}".format(bucket, zipball_name))
+    with open(zipball_path, 'rb') as zipball:
         response = s3.put_object(Bucket=bucket,
-                                 Key='thebestest-source.zip',
+                                 Key=zipball_name,
                                  Body=zipball)
     etag = response['ETag']
     logger.info("Upload has ETag {}".format(etag))
