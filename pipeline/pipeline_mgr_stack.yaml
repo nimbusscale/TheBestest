@@ -54,6 +54,21 @@ Resources:
           OAUTH_TOKEN: !Ref OAuthToken
           S3_BUCKET: !ImportValue theBestest-pipelineBucket
 
+  startUnitTestPipeline:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.start_pipeline
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
+          # Todo retrieve test pipeline name automatically
+          PIPELINE_NAME: thebestest-pipeline-test
+
   pipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -94,14 +109,19 @@ Resources:
                 {
                   "Variable": "$.action",
                   "StringEquals": "test",
-                  "Next": "TestSource"
+                  "Next": "RetrieveTestSource"
                 }
               ],
               "Default": "End"
             },
-            "TestSource": {
+            "RetrieveTestSource": {
               "Type": "Task",
               "Resource": "${retrieveSource.Arn}",
+              "Next": "StartUnitTest"
+            },
+            "StartUnitTest": {
+              "Type": "Task",
+              "Resource": "${startUnitTestPipeline.Arn}",
               "Next": "End"
             },
             "End": {

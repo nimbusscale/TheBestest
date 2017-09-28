@@ -82,6 +82,10 @@ Resources:
                   - codebuild:StartBuild
                 Resource:
                   - !GetAtt theBestestUnitTest.Arn
+              - Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
 
   theBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
