@@ -95,7 +95,7 @@ Resources:
     Properties:
       DefinitionString: !Sub |
         {
-          "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
+          "Comment": "UPDATED Automatic testing or deployment of code kicked off by GH Webhooks",
           "StartAt": "HandleWebhook",
           "States": {
             "HandleWebhook": {
@@ -206,7 +206,9 @@ Resources:
 
   pipelineMgrStageDeployer:
     Type: Custom::ApiGwStageDeployer
-    DependsOn: webhookEndPointMethod
+    DependsOn:
+      - webhookEndPointMethod
+      - pipelineMgrStateMachine
     Properties:
       ServiceToken: !GetAtt apiGwStageDeployer.Arn
       StageName: pipelinemgr
