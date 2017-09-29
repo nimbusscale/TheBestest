@@ -18,6 +18,7 @@ Resources:
         - PolicyName: pipelinePolicy
           PolicyDocument:
             Version: 2012-10-17
+            # Todo Lock down
             Statement:
               - Effect: Allow
                 Action:
@@ -26,6 +27,12 @@ Resources:
               - Effect: Allow
                 Action:
                   - apigateway:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - codepipeline:GetPipeline
+                  - codepipeline:GetPipelineState
+                  - codepipeline:StartPipelineExecution
                 Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
