@@ -95,7 +95,7 @@ def retrieve_source(event, context):
                                  Key=zipball_name,
                                  Body=zipball)
     event['version_id'] = response['VersionId']
-    logger.info("Upload has ETag {}".format(etag))
+    logger.info("Upload has Version ID {}".format(event['version_id']))
     # Cleanup
     logger.info("Removing {}".format(download_path))
     os.remove(download_path)
