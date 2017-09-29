@@ -122,6 +122,11 @@ Resources:
                 ProjectName: !Ref theBestestUnitTest
               InputArtifacts:
                 - Name: thebestest-source
+Outputs:
+  pipelineName:
+    Value: !Ref theBestestPipeline
+    Export:
+      Name: theBestest-testPipeline
 
 
 

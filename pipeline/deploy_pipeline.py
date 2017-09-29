@@ -101,7 +101,7 @@ def cfn_deploy(stack_name, template_path, env_name):
 
 
 def cleanup(template_path):
-    print(## Cleanup)
+    print("## Cleanup")
     if os.path.exists('./functions_deploy'):
         print('removing functions_deploy dir')
         shutil.rmtree('./functions_deploy')
