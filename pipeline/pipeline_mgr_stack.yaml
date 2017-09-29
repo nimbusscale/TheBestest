@@ -133,7 +133,7 @@ Resources:
     Properties:
       DefinitionString: !Sub |
         {
-          "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
+          "Comment": "update Automatic testing or deployment of code kicked off by GH Webhooks",
           "StartAt": "HandleWebhook",
           "States": {
             "HandleWebhook": {

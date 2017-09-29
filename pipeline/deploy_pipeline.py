@@ -13,7 +13,7 @@ commands.
 import argparse
 import os
 import shutil
-from subprocess import run
+import subprocess
 
 import boto3
 import github3
@@ -40,45 +40,76 @@ def prep_lambdas():
         shutil.rmtree('./functions_deploy')
 
     rsync_cmd = "rsync -av ./functions/ ./functions_deploy/"
-    run(rsync_cmd.split(), check=True)
+    subprocess.run(rsync_cmd.split(), check=True)
 
     gh_install = "pip install github3.py -t ./functions_deploy/pipeline_mgr/"
-    run(gh_install.split(), check=True)
+    subprocess.run(gh_install.split(), check=True)
 
 
-def cfn_deploy():
+def cfn_deploy(stack_name, template_path, env_name):
+    cfn = boto3.client('cloudformation')
     print("## Validate")
-    validate_cmd = ("aws cloudformation validate-template "
-                    "--template-body file://pipeline_mgr_stack.yaml")
-    run(validate_cmd.split(), check=True)
+    with open('pipeline_mgr_stack.yaml') as template_file:
+        validation_response = cfn.validate_template(
+            TemplateBody=template_file.read())
+    print(validation_response)
+
+    # if OAuthToken is a template param, then check if one has been set via
+    # args.
+    token = None
+    for params in validation_response['Parameters']:
+        if params['ParameterKey'] == 'OAuthToken':
+            if args.token:
+                token = args.token
+
+    deploy_file = template_path.replace('.yaml', '_deploy.yaml')
 
     print("## Package")
     pkg_cmd = ("aws cloudformation package "
-                "--template-file pipeline_mgr_stack.yaml "
+                "--template-file {} "
                 "--s3-bucket thebestest-pipeline "
-                "--output-template-file pipeline_mgr_stack_deploy.yaml")
-    run(pkg_cmd.split(), check=True)
+                "--output-template-file {}"
+               ).format(template_path, deploy_file)
+    subprocess.run(pkg_cmd.split(), check=True)
 
     print("## Deploy")
-    deploy_opts = ("--template-file pipeline_mgr_stack_deploy.yaml "
-                   "--stack-name thebestest-pipeline-mgr "
-                   "--capabilities CAPABILITY_IAM")
+    deploy_opts = ("--template-file {} "
+                   "--stack-name {} "
+                   "--capabilities CAPABILITY_IAM"
+                   ).format(deploy_file, stack_name)
 
-    if args.token:
+    if token:
         deploy_opts = (deploy_opts +
                        " --parameter-overrides OAuthToken={}".format(
-                           args.token))
+                           token))
+
+    if env_name:
+        deploy_opts = (deploy_opts +
+                       " --parameter-overrides envName={}".format(
+                           env_name))
 
     deploy_cmd = "aws cloudformation deploy {}".format(deploy_opts)
-    run(deploy_cmd.split(), check=True)
+    try:
+        subprocess.run(deploy_cmd.split(), stderr=subprocess.PIPE, check=True)
+    except subprocess.CalledProcessError as e:
+        # If error encountered see if it is because the template hasn't changed
+        # if so, then ignore error
+        if "didn't contain changes" not in str(e.stderr):
+            raise
+        else:
+            print("No new updates for stack {}".format(stack_name))
 
 
-def cleanup():
+def cleanup(template_path):
+    print(## Cleanup)
     if os.path.exists('./functions_deploy'):
+        print('removing functions_deploy dir')
         shutil.rmtree('./functions_deploy')
 
-    if os.path.exists('pipeline_mgr_stack_deploy.yaml'):
-        os.remove('pipeline_mgr_stack_deploy.yaml')
+    deploy_file = template_path.replace('.yaml', '_deploy.yaml')
+    if os.path.exists(deploy_file):
+        print("removing {}".format(deploy_file))
+        os.remove(deploy_file)
 
 
 def get_oauth_from_cfn(stack_name):
@@ -131,10 +162,25 @@ def update_webhook():
                          events=['pull_request'])
 
 if __name__ == '__main__':
+    # Ordered list tuples of stacks to deploy. Tuples include stack name,
+    # template file path and env name (use None if no pertinent env name)
+    stacks = [
+        ('thebestest-pipeline-test', 'pipeline_test_stack.yaml', None),
+        ('thebestest-pipeline-deploy-stage', 'pipeline_deploy_stack.yaml',
+         'stage'),
+        ('thebestest-pipeline-mgr', 'pipeline_mgr_stack.yaml', None)
+    ]
     args = arg_parse()
     prep_lambdas()
-    cfn_deploy()
-    cleanup()
+
+    for stack_name, template_path, env_name in stacks:
+        cfn_deploy(stack_name, template_path, env_name)
+
+    # Cleanup needs to wait till after all stacks deployed otherwise lambda
+    # temp folder is removed before it's needed
+    for stack_name, template_path, env_name in stacks:
+        cleanup(template_path)
+
     update_webhook()
 
 
