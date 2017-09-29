@@ -125,10 +125,44 @@ def start_pipeline(event, context):
     repo.create_status(sha, 'pending',
                        target_url=url,
                        context='UnitTest',
-                       description= execution_id)
-    event['pipelineExecutionId'] = execution_id
+                       description=execution_id)
+    event['execution_id'] = execution_id
+    event['pipeline_status'] = 'InProgress'
     return event
 
+def check_pipeline_status(event, context):
+    """Lambda that checks that status of a codepipeline execution id"""
+    pipeline_name = os.environ['PIPELINE_NAME']
+    execution_id = event['execution_id']
+    codepipeline = boto3.client('codepipeline')
+    status_response = codepipeline.get_pipeline_execution(
+        pipelineName=pipeline_name,
+        pipelineExecutionId=execution_id)
+    event['pipeline_status'] = status_response['pipelineExecution']['status']
+    return event
+
+def set_github_status(event, context):
+    """Lambda that sets the status of the PR to failure"""
+    owner = event['pr_info']['owner']
+    repo_name = event['pr_info']['repo']
+    sha = event['pr_info']['sha']
+    url = event['pr_info']['url']
+    execution_id = event['execution_id']
+    token = os.environ['OAUTH_TOKEN']
+    pipeline_status = event['pipeline_status']
+    if pipeline_status == 'Succeeded':
+        pr_status = 'success'
+    elif pipeline_status == 'Failed':
+        pr_status = 'failure'
+    elif pipeline_status == 'Superseded':
+        pr_status = 'error'
+    gh = github3.login(token=token)
+    repo = gh.repository(owner, repo_name)
+    repo.create_status(sha, pr_status,
+                       target_url=url,
+                       context='UnitTest',
+                       description=execution_id)
+    return event
 
 
 

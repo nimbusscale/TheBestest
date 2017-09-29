@@ -33,6 +33,7 @@ Resources:
                   - codepipeline:GetPipeline
                   - codepipeline:GetPipelineState
                   - codepipeline:StartPipelineExecution
+                  - codepipeline:GetPipelineExecution
                 Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
@@ -61,7 +62,7 @@ Resources:
           OAUTH_TOKEN: !Ref OAuthToken
           S3_BUCKET: !ImportValue theBestest-pipelineBucket
 
-  startUnitTestPipeline:
+  startTestPipeline:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
@@ -75,6 +76,36 @@ Resources:
           OAUTH_TOKEN: !Ref OAuthToken
           # Todo retrieve test pipeline name automatically
           PIPELINE_NAME: thebestest-pipeline-test
+
+  checkTestPipelineStatus:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.check_pipeline_status
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          # Todo retrieve test pipeline name automatically
+          PIPELINE_NAME: thebestest-pipeline-test
+
+  setTestStatus:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.set_github_status
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
+          # Todo retrieve test pipeline name automatically
+          PIPELINE_NAME: thebestest-pipeline-test
+
 
   pipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
@@ -128,8 +159,34 @@ Resources:
             },
             "StartUnitTest": {
               "Type": "Task",
-              "Resource": "${startUnitTestPipeline.Arn}",
-              "Next": "End"
+              "Resource": "${startTestPipeline.Arn}",
+              "Next": "CheckUnitTestStatus"
+            },
+            "CheckUnitTestStatus": {
+              "Type": "Task",
+              "Resource": "${checkTestPipelineStatus.Arn}",
+              "Next": "UnitTestStatus"
+            },
+            "UnitTestStatus": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.pipeline_status",
+                  "StringEquals": "InProgress",
+                  "Next": "Wait15Seconds"
+                }
+              ],
+              "Default": "SetUnitTestStatus"
+            },
+            "Wait15Seconds": {
+              "Type": "Wait",
+              "Seconds": 15,
+              "Next": "CheckUnitTestStatus"
+            },
+            "SetUnitTestStatus": {
+              "Type": "Task",
+              "Resource": "${setTestStatus.Arn}",
+              "End": true
             },
             "End": {
               "Type": "Pass",
@@ -217,8 +274,8 @@ Resources:
       StageName: pipelinemgr
       RestApiId: !Ref pipelineMgrGW
       # Used to make sure this custom resource is updated when
-      # webhookEndPointMethod is updated.
+      # webhookEndPointMethod and pipelineMgrStateMachine is updated.
       WebhookEndPoint: !Ref webhookEndPointMethod
-
+      PipelineMgrStateMachine: !Ref pipelineMgrStateMachine
 
 

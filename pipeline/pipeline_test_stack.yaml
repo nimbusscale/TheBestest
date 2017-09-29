@@ -35,6 +35,10 @@ Resources:
                   - s3:Get*
                   - s3:List*
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
+              - Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
 
   theBestestUnitTest:
     Type: AWS::CodeBuild::Project
@@ -82,10 +86,6 @@ Resources:
                   - codebuild:StartBuild
                 Resource:
                   - !GetAtt theBestestUnitTest.Arn
-              - Effect: Allow
-                Action:
-                  - cloudformation:ValidateTemplate
-                Resource: "*"
 
   theBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
