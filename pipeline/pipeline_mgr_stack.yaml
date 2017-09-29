@@ -95,7 +95,7 @@ Resources:
     Properties:
       DefinitionString: !Sub |
         {
-          "Comment": "UPDATED Automatic testing or deployment of code kicked off by GH Webhooks",
+          "Comment": "Automatic testing or deployment of code kicked off by GH Webhooks",
           "StartAt": "HandleWebhook",
           "States": {
             "HandleWebhook": {
@@ -170,7 +170,6 @@ Resources:
 
   webhookEndPointMethod:
     Type: AWS::ApiGateway::Method
-    DependsOn: pipelineMgrStateMachine
     Properties:
       RestApiId: !Ref pipelineMgrGW
       ResourceId: !Ref webhookEndPointResource
@@ -205,14 +204,14 @@ Resources:
       Runtime: python3.6
 
   pipelineMgrStageDeployer:
-    Type: Custom::ApiGwStageDeployer
-    DependsOn:
-      - webhookEndPointMethod
-      - pipelineMgrStateMachine
+    Type: Custom::pipelineMgrStageDeployer
     Properties:
       ServiceToken: !GetAtt apiGwStageDeployer.Arn
       StageName: pipelinemgr
       RestApiId: !Ref pipelineMgrGW
+      # Used to make sure this custom resource is updated when
+      # webhookEndPointMethod is updated.
+      WebhookEndPoint: !Ref webhookEndPointMethod
 
 
 
