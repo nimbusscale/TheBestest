@@ -184,7 +184,7 @@ Resources:
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/apigw_stage_deployer
       Handler: apigw_stage_deployer.deploy_stage
-      Role: !GetAtt pipelineLambdaRole.Arn
+      Role: !GetAtt stageDeployerLambdaRole.Arn
       Runtime: python3.6
 
   apiGwStageDeployer:
