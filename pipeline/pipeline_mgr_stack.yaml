@@ -171,97 +171,107 @@ Resources:
     Properties:
       DefinitionString: !Sub |
         {
-          "Comment": "update Automatic testing or deployment of code kicked off by GH Webhooks",
-          "StartAt": "HandleWebhook",
-          "States": {
-            "HandleWebhook": {
-              "Type": "Task",
-              "Resource": "${webhookHandler.Arn}",
-              "Next": "PipelineAction"
-            },
-            "PipelineAction": {
-              "Type": "Choice",
-              "Choices": [
-                {
-                  "Variable": "$.action",
-                  "StringEquals": "test",
-                  "Next": "RetrieveTestSource"
-                }
-              ],
-              "Default": "End"
-            },
-            "RetrieveTestSource": {
-              "Type": "Task",
-              "Resource": "${retrieveSource.Arn}",
-              "Next": "StartUnitTest"
-            },
-            "StartUnitTest": {
-              "Type": "Task",
-              "Resource": "${startTestPipeline.Arn}",
-              "Next": "CheckUnitTestStatus"
-            },
-            "CheckUnitTestStatus": {
-              "Type": "Task",
-              "Resource": "${checkTestPipelineStatus.Arn}",
-              "Next": "UnitTestStatus"
-            },
-            "UnitTestStatus": {
-              "Type": "Choice",
-              "Choices": [
-                {
-                  "Variable": "$.pipeline_status",
-                  "StringEquals": "InProgress",
-                  "Next": "UnitTestStatusWait"
-                }
-              ],
-              "Default": "SetUnitTestStatus"
-            },
-            "UnitTestStatusWait": {
-              "Type": "Wait",
-              "Seconds": 15,
-              "Next": "CheckUnitTestStatus"
-            },
-            "SetUnitTestStatus": {
-              "Type": "Task",
-              "Resource": "${setTestStatus.Arn}",
-              "Next": "StartStageDeploy"
-            },
-            "StartStageDeploy": {
-              "Type": "Task",
-              "Resource": "${startStageDeployPipeline.Arn}",
-              "Next": "CheckStageDeployStatus"
-            },
-            "CheckStageDeployStatus": {
-              "Type": "Task",
-              "Resource": "${checkStageDeployStatus.Arn}",
-              "Next": "StageDeployStatus"
-            },
-            "StageDeployStatus": {
-              "Type": "Choice",
-              "Choices": [
-                {
-                  "Variable": "$.pipeline_status",
-                  "StringEquals": "InProgress",
-                  "Next": "StageDeployStatusWait"
-                }
-              ],
-              "Default": "SetStageDeployStatus"
-            },
-            "StageDeployStatusWait": {
-              "Type": "Wait",
-              "Seconds": 15,
-              "Next": "CheckStageDeployStatus"
-            },
-            "SetStageDeployStatus": {
-              "Type": "Task",
-              "Resource": "${setStageDeployStatus.Arn}",
-              "End": true
-            },
-            "End": {
-              "Type": "Pass",
-              "End": true
-            }
-          }
+        	"Comment": "update Automatic testing or deployment of code kicked off by GH Webhooks",
+        	"StartAt": "HandleWebhook",
+        	"States": {
+        		"HandleWebhook": {
+        			"Type": "Task",
+        			"Resource": "${webhookHandler.Arn}",
+        			"Next": "PipelineAction"
+        		},
+        		"PipelineAction": {
+        			"Type": "Choice",
+        			"Choices": [{
+        				"Variable": "$.action",
+        				"StringEquals": "test",
+        				"Next": "RetrieveTestSource"
+        			}],
+        			"Default": "End"
+        		},
+        		"RetrieveTestSource": {
+        			"Type": "Task",
+        			"Resource": "${retrieveSource.Arn}",
+        			"Next": "StartUnitTest"
+        		},
+        		"StartUnitTest": {
+        			"Type": "Task",
+        			"Resource": "${startTestPipeline.Arn}",
+        			"Next": "CheckUnitTestStatus"
+        		},
+        		"CheckUnitTestStatus": {
+        			"Type": "Task",
+        			"Resource": "${checkTestPipelineStatus.Arn}",
+        			"Next": "UnitTestStatus"
+        		},
+        		"UnitTestStatus": {
+        			"Type": "Choice",
+        			"Choices": [{
+        				"Variable": "$.pipeline_status",
+        				"StringEquals": "InProgress",
+        				"Next": "UnitTestStatusWait"
+        			}],
+        			"Default": "SetUnitTestStatus"
+        		},
+        		"UnitTestStatusWait": {
+        			"Type": "Wait",
+        			"Seconds": 15,
+        			"Next": "CheckUnitTestStatus"
+        		},
+        		"SetUnitTestStatus": {
+        			"Type": "Task",
+        			"Resource": "${setTestStatus.Arn}",
+        			"Next": "CheckDeployToStage"
+        		},
+        		"CheckDeployToStage": {
+        			"Type": "Choice",
+        			"Choices": [{
+        				"Or": [{
+        						"Variable": "$.pipeline_status",
+        						"StringEquals": "Failed"
+        					},
+        					{
+        						"Variable": "$.pipeline_status",
+        						"StringEquals": "Superseded"
+        					}
+        				],
+        				"Next": "End"
+        			}],
+        			"Default": "StartStageDeploy"
+        		},
+        		"StartStageDeploy": {
+        			"Type": "Task",
+        			"Resource": "${startStageDeployPipeline.Arn}",
+        			"Next": "CheckStageDeployStatus"
+        		},
+        		"CheckStageDeployStatus": {
+        			"Type": "Task",
+        			"Resource": "${checkStageDeployStatus.Arn}",
+        			"Next": "StageDeployStatus"
+        		},
+        		"StageDeployStatus": {
+        			"Type": "Choice",
+        			"Choices": [{
+        				"Variable": "$.pipeline_status",
+        				"StringEquals": "InProgress",
+        				"Next": "StageDeployStatusWait"
+        			}],
+        			"Default": "SetStageDeployStatus"
+        		},
+        		"StageDeployStatusWait": {
+        			"Type": "Wait",
+        			"Seconds": 15,
+        			"Next": "CheckStageDeployStatus"
+        		},
+        		"SetStageDeployStatus": {
+        			"Type": "Task",
+        			"Resource": "${setStageDeployStatus.Arn}",
+        			"End": true
+        		},
+        		"End": {
+        			"Type": "Pass",
+        			"End": true
+        		}
+        	}
         }
       RoleArn: !GetAtt pipelineMgrStateMachineRole.Arn
 

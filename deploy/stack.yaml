@@ -177,7 +177,7 @@ Resources:
 ## Stage Deployer
 ###############################################################################
 
-  apiGwStageDeployer:
+  stageDeployerLambda:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
@@ -190,7 +190,7 @@ Resources:
   apiGwStageDeployer:
     Type: Custom::apiGwStageDeployer
     Properties:
-      ServiceToken: !GetAtt apiGwStageDeployer.Arn
+      ServiceToken: !GetAtt stageDeployerLambda.Arn
       StageName: thebestest
       RestApiId: !Ref apiGw
       # Used to make sure this custom resource is updated when
