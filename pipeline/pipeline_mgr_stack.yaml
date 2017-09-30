@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Pipeline Infra for TheBestest App
+Description: Manages the flow through the pipeline for TheBestest App
 Parameters:
   OAuthToken:
     Type: String
@@ -101,8 +101,7 @@ Resources:
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
-          # Todo retrieve test pipeline name automatically
-          PIPELINE_NAME: thebestest-pipeline-test
+          PIPELINE_NAME: !ImportValue theBestest-testPipeline
 
 
   pipelineMgrStateMachineRole:

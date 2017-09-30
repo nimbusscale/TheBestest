@@ -124,7 +124,7 @@ def start_pipeline(event, context):
     repo = gh.repository(owner, repo_name)
     repo.create_status(sha, 'pending',
                        target_url=url,
-                       context='UnitTest',
+                       context=pipeline_name,
                        description=execution_id)
     event['execution_id'] = execution_id
     event['pipeline_status'] = 'InProgress'
@@ -149,6 +149,7 @@ def set_github_status(event, context):
     url = event['pr_info']['url']
     execution_id = event['execution_id']
     token = os.environ['OAUTH_TOKEN']
+    pipeline_name = os.environ['PIPELINE_NAME']
     pipeline_status = event['pipeline_status']
     if pipeline_status == 'Succeeded':
         pr_status = 'success'
@@ -160,7 +161,7 @@ def set_github_status(event, context):
     repo = gh.repository(owner, repo_name)
     repo.create_status(sha, pr_status,
                        target_url=url,
-                       context='UnitTest',
+                       context=pipeline_name,
                        description=execution_id)
     return event
 

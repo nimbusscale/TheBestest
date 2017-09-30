@@ -101,7 +101,6 @@ def cfn_deploy(stack_name, template_path, env_name):
 
 
 def cleanup(template_path):
-    print("## Cleanup")
     if os.path.exists('./functions_deploy'):
         print('removing functions_deploy dir')
         shutil.rmtree('./functions_deploy')
@@ -178,6 +177,7 @@ if __name__ == '__main__':
 
     # Cleanup needs to wait till after all stacks deployed otherwise lambda
     # temp folder is removed before it's needed
+    print("## Cleanup")
     for stack_name, template_path, env_name in stacks:
         cleanup(template_path)
 

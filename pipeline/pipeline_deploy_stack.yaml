@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A Pipeline to deploy TheBestest App
+Description: A Pipeline to deploy TheBestest App to an environment
 Parameters:
   envName:
     Description: Name of the environment to be deployed
