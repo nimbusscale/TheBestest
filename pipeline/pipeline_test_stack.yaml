@@ -1,11 +1,92 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: A pipeline to test and validate TheBestest Code
-Parameters:
-  gitBranch:
-    Description: The branch which will be checked out from GitHub.
-    Type: String
-    Default: master
 Resources:
+  buildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: buildPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/*" ] ]
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest*:log-stream:*" ] ]
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
+              - Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
+
+  theBestestUnitTest:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: thebestest-unittest
+      ServiceRole: !GetAtt buildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec-unittest.yaml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
+      Artifacts:
+        Type: CODEPIPELINE
+
+  pipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource:
+                  - !GetAtt theBestestUnitTest.Arn
+
   theBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -13,22 +94,20 @@ Resources:
       ArtifactStore:
         Location: !ImportValue theBestest-pipelineBucket
         Type: S3
-      RoleArn: !ImportValue theBestest-pipelineRoleArn
+      RoleArn: !GetAtt pipelineRole.Arn
       Stages:
         - Name: Source
           Actions:
-            - Name: Master
+            - Name: Source
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
+                Owner: AWS
+                Provider: S3
                 Version: 1
               Configuration:
-                Owner: nimbusscale
-                OAuthToken: !ImportValue theBestest-OAuthToken
-                Repo: TheBestest
-                Branch: !Ref gitBranch
-                PollForSourceChanges: true
+                S3Bucket: !ImportValue theBestest-pipelineBucket
+                S3ObjectKey: thebestest-source.zip
+                PollForSourceChanges: false
               OutputArtifacts:
                 - Name: thebestest-source
         - Name: UnitTest
@@ -40,9 +119,14 @@ Resources:
                 Provider: CodeBuild
                 Version: 1
               Configuration:
-                ProjectName: !ImportValue theBestest-theBestestUnitTestId
+                ProjectName: !Ref theBestestUnitTest
               InputArtifacts:
                 - Name: thebestest-source
+Outputs:
+  pipelineName:
+    Value: !Ref theBestestPipeline
+    Export:
+      Name: theBestest-testPipeline
 
 
 

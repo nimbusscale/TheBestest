@@ -1,14 +1,171 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A Pipeline to deploy TheBestest App
+Description: A Pipeline to deploy TheBestest App to an environment
 Parameters:
-  gitBranch:
-    Description: The branch which will be checked out from GitHub.
-    Type: String
-    Default: master
   envName:
     Description: Name of the environment to be deployed
     Type: String
 Resources:
+  pipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:UpdateStack
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:SetStackPolicy
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !GetAtt cloudformationRole.Arn
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource:
+                  - !GetAtt theBestestBuild.Arn
+
+  cloudformationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: cloudformationPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            # Todo consider locking down perms more
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+              - Effect: Allow
+                Action:
+                  - lambda:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource: !Join [ "", ["arn:aws:dynamodb:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":table/*" ] ]
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                Resource: !Join [ "", ["arn:aws:iam::", !Ref "AWS::AccountId", ":role/*" ] ]
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cognito-idp:CreateUserPool
+                  - cognito-idp:CreateUserPoolClient
+                  - cognito-idp:DeleteUserPool
+                  - cognito-idp:DeleteUserPoolClient
+                  - cognito-idp:UpdateUserPool
+                  - cognito-idp:UpdateUserPoolClient
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - states:CreateStateMachine
+                  - states:DeleteStateMachine
+                Resource: !Join [ "", ["arn:aws:states:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":stateMachine:*" ] ]
+
+  buildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: buildPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/*" ] ]
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest*:log-stream:*" ] ]
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+
+  theBestestBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "thebestest-${envName}-build"
+      ServiceRole: !GetAtt buildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec-package.yaml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
+      Artifacts:
+        Type: CODEPIPELINE
+
+
   theBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -16,22 +173,20 @@ Resources:
       ArtifactStore:
         Location: !ImportValue theBestest-pipelineBucket
         Type: S3
-      RoleArn: !ImportValue theBestest-pipelineRoleArn
+      RoleArn: !GetAtt pipelineRole.Arn
       Stages:
         - Name: Source
           Actions:
-            - Name: Master
+            - Name: Source
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
+                Owner: AWS
+                Provider: S3
                 Version: 1
               Configuration:
-                Owner: nimbusscale
-                OAuthToken: !ImportValue theBestest-OAuthToken
-                Repo: TheBestest
-                Branch: !Ref gitBranch
-                PollForSourceChanges: true
+                S3Bucket: !ImportValue theBestest-pipelineBucket
+                S3ObjectKey: thebestest-source.zip
+                PollForSourceChanges: false
               OutputArtifacts:
                 - Name: thebestest-source
         - Name: Package
@@ -43,11 +198,11 @@ Resources:
                 Provider: CodeBuild
                 Version: 1
               Configuration:
-                ProjectName: !ImportValue theBestest-theBestestBuildId
+                ProjectName: !Ref theBestestBuild
               InputArtifacts:
                 - Name: thebestest-source
               OutputArtifacts:
-                - Name: thebestest-deploy-template
+                - Name: !Sub "thebestest-${envName}-deploy-template"
         - Name: DeployStack
           Actions:
             - Name: CreateChangeSet
@@ -62,14 +217,14 @@ Resources:
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
                 ChangeSetName: !Sub "thebestest-${envName}-changeset"
-                TemplatePath: thebestest-deploy-template::stack_deploy.yaml
-                RoleArn: !ImportValue theBestest-cloudformationRoleArn
+                TemplatePath: !Sub "thebestest-${envName}-deploy-template::stack_deploy.yaml"
+                RoleArn: !GetAtt cloudformationRole.Arn
                 ParameterOverrides: !Sub |
                   {
                     "envName" : "${envName}"
                   }
               InputArtifacts:
-                - Name: thebestest-deploy-template
+                - Name: !Sub "thebestest-${envName}-deploy-template"
             - Name: ExecuteChangeSet
               RunOrder: 2
               ActionTypeId:
@@ -81,16 +236,6 @@ Resources:
                 StackName: !Sub "thebestest-${envName}"
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: !Sub "thebestest-${envName}-changeset"
-            - Name: DeployApi
-              RunOrder: 3
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: 1
-              Configuration:
-                FunctionName: !ImportValue theBestest-deployApiFunctionId
-                UserParameters: !Sub "{\"stackName\": \"thebestest-${envName}\", \"stageName\": \"${envName}\"}"
 
 
 

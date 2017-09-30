@@ -2,6 +2,8 @@ version: 0.2
 phases:
   build:
     commands:
+      - pip install --upgrade awscli==1.11.127
+      - aws cloudformation validate-template --template-body file://deploy/stack.yaml
       - yum -y install java
       - pip install -r requirements.txt
       - cd testing && bash ./unittest.sh
