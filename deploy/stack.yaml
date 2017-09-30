@@ -187,19 +187,19 @@ Resources:
       Role: !GetAtt stageDeployerLambdaRole.Arn
       Runtime: python3.6
 
-  apiGwStageDeployer:
-    Type: Custom::apiGwStageDeployer
-    Properties:
-      ServiceToken: !GetAtt stageDeployerLambda.Arn
-      StageName: thebestest
-      RestApiId: !Ref apiGw
-      # Used to make sure this custom resource is updated when
-      # methods are updated
-      RestApiMethods: !Sub |
-        { "methods": [
-            "${getItemsMethod}
-          ]
-        }
+#  apiGwStageDeployer:
+#    Type: Custom::apiGwStageDeployer
+#    Properties:
+#      ServiceToken: !GetAtt stageDeployerLambda.Arn
+#      StageName: thebestest
+#      RestApiId: !Ref apiGw
+#      # Used to make sure this custom resource is updated when
+#      # methods are updated
+#      RestApiMethods: !Sub |
+#        { "methods": [
+#            "${getItemsMethod}
+#          ]
+#        }
 
 ###############################################################################
 ## Outputs
