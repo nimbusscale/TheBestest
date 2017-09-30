@@ -38,6 +38,29 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
+  stageDeployerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            # Todo Lock down
+            Statement:
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
 ###############################################################################
 ## API Infra and User Pool
 ###############################################################################
@@ -150,6 +173,33 @@ Resources:
       FunctionName: !Ref getItemsFunction
       Action: lambda:InvokeFunction
 
+###############################################################################
+## Stage Deployer
+###############################################################################
+
+  apiGwStageDeployer:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/apigw_stage_deployer
+      Handler: apigw_stage_deployer.deploy_stage
+      Role: !GetAtt pipelineLambdaRole.Arn
+      Runtime: python3.6
+
+  apiGwStageDeployer:
+    Type: Custom::apiGwStageDeployer
+    Properties:
+      ServiceToken: !GetAtt apiGwStageDeployer.Arn
+      StageName: thebestest
+      RestApiId: !Ref apiGw
+      # Used to make sure this custom resource is updated when
+      # methods are updated
+      RestApiMethods: !Sub |
+        { "methods": [
+            "${getItemsMethod}
+          ]
+        }
 
 ###############################################################################
 ## Outputs
