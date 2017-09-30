@@ -103,6 +103,47 @@ Resources:
           OAUTH_TOKEN: !Ref OAuthToken
           PIPELINE_NAME: !ImportValue theBestest-testPipeline
 
+  startStageDeployPipeline:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.start_pipeline
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
+          PIPELINE_NAME: !ImportValue theBestest-stage-deployPipeline
+
+  checkStageDeployStatus:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.check_pipeline_status
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          PIPELINE_NAME: !ImportValue theBestest-stage-deployPipeline
+
+  setStageDeployStatus:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline_mgr
+      Handler: pipeline_mgr.set_github_status
+      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
+          PIPELINE_NAME: !ImportValue theBestest-stage-deployPipeline
+
 
   pipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
@@ -170,12 +211,12 @@ Resources:
                 {
                   "Variable": "$.pipeline_status",
                   "StringEquals": "InProgress",
-                  "Next": "Wait15Seconds"
+                  "Next": "UnitTestStatusWait"
                 }
               ],
               "Default": "SetUnitTestStatus"
             },
-            "Wait15Seconds": {
+            "UnitTestStatusWait": {
               "Type": "Wait",
               "Seconds": 15,
               "Next": "CheckUnitTestStatus"
@@ -183,6 +224,37 @@ Resources:
             "SetUnitTestStatus": {
               "Type": "Task",
               "Resource": "${setTestStatus.Arn}",
+              "Next": "StartStageDeploy"
+            },
+            "StartStageDeploy": {
+              "Type": "Task",
+              "Resource": "${startStageDeployPipeline.Arn}",
+              "Next": "CheckStageDeployStatus"
+            },
+            "CheckStageDeployStatus": {
+              "Type": "Task",
+              "Resource": "${checkStageDeployStatus.Arn}",
+              "Next": "StageDeployStatus"
+            },
+            "StageDeployStatus": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.pipeline_status",
+                  "StringEquals": "InProgress",
+                  "Next": "StageDeployStatusWait"
+                }
+              ],
+              "Default": "SetStageDeployStatus"
+            },
+            "StageDeployStatusWait": {
+              "Type": "Wait",
+              "Seconds": 15,
+              "Next": "CheckStageDeployStatus"
+            },
+            "SetStageDeployStatus": {
+              "Type": "Task",
+              "Resource": "${setStageDeployStatus.Arn}",
               "End": true
             },
             "End": {
