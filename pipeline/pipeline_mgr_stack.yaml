@@ -18,12 +18,13 @@ Resources:
         - PolicyName: pipelinePolicy
           PolicyDocument:
             Version: 2012-10-17
-            # Todo Lock down
             Statement:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - apigateway:*
