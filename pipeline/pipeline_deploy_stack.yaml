@@ -79,7 +79,7 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource: !Sub
-                  -  arn:aws:s3:::${PipelineBucket}
+                  -  arn:aws:s3:::${PipelineBucket}/*
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
