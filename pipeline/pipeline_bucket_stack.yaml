@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: S3 bucket used by TheBestest Pipeline
 Resources:
-  pipelineBucket:
+  PipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: thebestest-pipeline
@@ -14,9 +14,9 @@ Resources:
             Status: Enabled
 Outputs:
   bucketId:
-    Value: !Ref pipelineBucket
+    Value: !Ref PipelineBucket
     Export:
-      Name: theBestest-pipelineBucket
+      Name: TheBestest-PipelineBucket
 
 
 

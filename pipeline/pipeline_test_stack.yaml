@@ -29,12 +29,12 @@ Resources:
                 Action:
                   - s3:Get*
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
                   - s3:Get*
                   - s3:List*
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket]]
               - Effect: Allow
                 Action:
                   - cloudformation:ValidateTemplate
@@ -74,12 +74,12 @@ Resources:
                 Action:
                   - s3:Get*
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
                   - s3:Get*
                   - s3:List*
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket]]
               - Effect: Allow
                 Action:
                   - codebuild:BatchGetBuilds
@@ -92,7 +92,7 @@ Resources:
     Properties:
       Name: !Ref AWS::StackName
       ArtifactStore:
-        Location: !ImportValue theBestest-pipelineBucket
+        Location: !ImportValue TheBestest-PipelineBucket
         Type: S3
       RoleArn: !GetAtt pipelineRole.Arn
       Stages:
@@ -105,7 +105,7 @@ Resources:
                 Provider: S3
                 Version: 1
               Configuration:
-                S3Bucket: !ImportValue theBestest-pipelineBucket
+                S3Bucket: !ImportValue TheBestest-PipelineBucket
                 S3ObjectKey: thebestest-source.zip
                 PollForSourceChanges: false
               OutputArtifacts:
