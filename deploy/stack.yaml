@@ -4,6 +4,7 @@ Parameters:
   EnvName:
     Description: Name of the environment to be deployed
     Type: String
+    Default: "testing"
 Resources:
 ###############################################################################
 ## Roles
@@ -34,7 +35,7 @@ Resources:
                   - dynamodb:Query
                   - dynamodb:Scan
                   - dynamodb:UpdateItem
-                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ItemTable}
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ItemTable}"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
@@ -52,12 +53,11 @@ Resources:
         - PolicyName: pipelinePolicy
           PolicyDocument:
             Version: 2012-10-17
-            # Todo Lock down
             Statement:
               - Effect: Allow
                 Action:
                   - apigateway:*
-                Resource: "*"
+                Resource: !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGw}/*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
