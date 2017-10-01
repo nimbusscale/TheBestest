@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: A Pipeline to deploy TheBestest App to an environment
 Parameters:
-  envName:
+  EnvName:
     Description: Name of the environment to be deployed
     Type: String
 Resources:
@@ -155,7 +155,7 @@ Resources:
   TheBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub "thebestest-${envName}-build"
+      Name: !Sub "thebestest-${EnvName}-build"
       ServiceRole: !GetAtt BuildRole.Arn
       Source:
         Type: CODEPIPELINE
@@ -204,7 +204,7 @@ Resources:
               InputArtifacts:
                 - Name: thebestest-source
               OutputArtifacts:
-                - Name: !Sub "thebestest-${envName}-deploy-template"
+                - Name: !Sub "thebestest-${EnvName}-deploy-template"
         - Name: DeployStack
           Actions:
             - Name: CreateChangeSet
@@ -215,18 +215,18 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub "thebestest-${envName}"
+                StackName: !Sub "thebestest-${EnvName}"
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
-                ChangeSetName: !Sub "thebestest-${envName}-changeset"
-                TemplatePath: !Sub "thebestest-${envName}-deploy-template::stack_deploy.yaml"
+                ChangeSetName: !Sub "thebestest-${EnvName}-changeset"
+                TemplatePath: !Sub "thebestest-${EnvName}-deploy-template::stack_deploy.yaml"
                 RoleArn: !GetAtt CloudformationRole.Arn
                 ParameterOverrides: !Sub |
                   {
-                    "envName" : "${envName}"
+                    "EnvName" : "${EnvName}"
                   }
               InputArtifacts:
-                - Name: !Sub "thebestest-${envName}-deploy-template"
+                - Name: !Sub "thebestest-${EnvName}-deploy-template"
             - Name: ExecuteChangeSet
               RunOrder: 2
               ActionTypeId:
@@ -235,15 +235,15 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub "thebestest-${envName}"
+                StackName: !Sub "thebestest-${EnvName}"
                 ActionMode: CHANGE_SET_EXECUTE
-                ChangeSetName: !Sub "thebestest-${envName}-changeset"
+                ChangeSetName: !Sub "thebestest-${EnvName}-changeset"
 
 Outputs:
   PipelineName:
     Value: !Ref TheBestestPipeline
     Export:
-      Name: !Sub "TheBestest-${envName}-DeployPipeline"
+      Name: !Sub "TheBestest-${EnvName}-DeployPipeline"
 
 
 
