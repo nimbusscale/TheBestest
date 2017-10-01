@@ -70,7 +70,6 @@ Resources:
         - PolicyName: cloudformationPolicy
           PolicyDocument:
             Version: 2012-10-17
-            # Todo consider locking down perms more
             Statement:
               - Effect: Allow
                 Action:
@@ -79,14 +78,14 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:*
-                Resource: "*"
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:thebestest*"
               - Effect: Allow
                 Action:
                   - apigateway:*
-                Resource: !Join [ "", ["arn:aws:apigateway:", !Ref "AWS::Region", "::*" ] ]
+                Resource: !Sub "arn:aws:apigateway:${AWS::Region}::/*"
               - Effect: Allow
                 Action:
-                  - dynamodb:*
+                  - dynamodb:*Table
                 Resource: !Join [ "", ["arn:aws:dynamodb:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":table/*" ] ]
               - Effect: Allow
                 Action:
@@ -101,7 +100,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - iam:PassRole
-                Resource: "*"
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/thebestest*LambdaRole*"
               - Effect: Allow
                 Action:
                   - cloudformation:CreateChangeSet
