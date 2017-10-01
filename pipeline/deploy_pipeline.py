@@ -7,8 +7,8 @@ aws cli is used to deploy cloudformation stack vs boto3. This is because cli
 has additional functionality for packaging CFN templates that is not found in
 boto3.
 
-Most of this was copied from a shell script hence a lot of calls to CLI
-commands.
+This initially started as a shell script, so there is still some left over CLI
+commands that should ideally be moved to native python.
 """
 import argparse
 import os
