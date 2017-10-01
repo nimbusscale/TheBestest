@@ -152,9 +152,15 @@ Resources:
                 Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/thebestest*:log-stream:*
               - Effect: Allow
                 Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
+                  - s3:Get*
                   - s3:PutObject
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
                 Resource: !Sub
                   -  arn:aws:s3:::${PipelineBucket}
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
