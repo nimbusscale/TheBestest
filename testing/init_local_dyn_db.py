@@ -33,7 +33,7 @@ dynamodb = boto3.resource(service_name='dynamodb',
                           endpoint_url='http://localhost:8000')
 
 
-def get_dynamodb_table_specs(template_path):
+def get_dynamodb_table_specs():
     """This function was intended to read the cfn template and grab the DynDB
     table specs, but cfn's special syntax fer cfn functions causes too much of
     an issue. May revisit in the future, but for now just return sane specs."""
@@ -80,7 +80,7 @@ def seed_items_table(table_name):
         table.put_item(Item=item)
 
 if __name__ == '__main__':
-    table_specs = get_dynamodb_table_specs(args.template_path)
+    table_specs = get_dynamodb_table_specs()
     create_dynamodb_tables(table_specs)
     seed_items_table(table_specs['itemTable']['TableName'])
 

@@ -180,26 +180,24 @@ Resources:
   stageDeployerLambda:
     Type: AWS::Lambda::Function
     Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/apigw_stage_deployer
+      Code: pipeline/functions/apigw_stage_deployer
       Handler: apigw_stage_deployer.deploy_stage
       Role: !GetAtt stageDeployerLambdaRole.Arn
       Runtime: python3.6
 
-#  apiGwStageDeployer:
-#    Type: Custom::apiGwStageDeployer
-#    Properties:
-#      ServiceToken: !GetAtt stageDeployerLambda.Arn
-#      StageName: thebestest
-#      RestApiId: !Ref apiGw
-#      # Used to make sure this custom resource is updated when
-#      # methods are updated
-#      RestApiMethods: !Sub |
-#        { "methods": [
-#            "${getItemsMethod}
-#          ]
-#        }
+  apiGwStageDeployer:
+    Type: Custom::apiGwStageDeployer
+    Properties:
+      ServiceToken: !GetAtt stageDeployerLambda.Arn
+      StageName: thebestest
+      RestApiId: !Ref apiGw
+      # Used to make sure this custom resource is updated when
+      # methods are updated
+      RestApiMethods: !Sub |
+        { "methods": [
+            "${getItemsMethod}
+          ]
+        }
 
 ###############################################################################
 ## Outputs
