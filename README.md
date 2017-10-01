@@ -1,3 +1,5 @@
+TheBestest is a mobile app that allows you to keep track of your favorite things. 
+
 TheBestest is a project I've casually worked on over the summer to learn about AWS serverless services. I had initially envisioned building a mobile app utilizing an API based on Lambda, API GW, Cognito, and DynamoDB. All services I had never used before. While I did work on developing the API a bit, the project really ended up focusing more of building out a serverless pipeline expanded the project to also leverage CodePipeline, CodeBuild and StepFunction.
 
 Initially I had hoped to use CodePipeline right out of the box, but as I was building things out its shortcomings became apparent. While I would almost certainly be the only one to work on TheBestest, I wanted to create a pipeline that could handle multiple developers and multiple parallel feature branches. CodePipeline was limited to pulling directly from GitHub form a single predefined branch. This didn't work well in the scenario I wanted to plan for.
