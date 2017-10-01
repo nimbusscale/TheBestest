@@ -54,6 +54,8 @@ Resources:
                 Resource:
                   - !GetAtt theBestestBuild.Arn
 
+
+
   cloudformationRole:
     Type: AWS::IAM::Role
     Properties:
@@ -237,6 +239,11 @@ Resources:
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: !Sub "thebestest-${envName}-changeset"
 
+Outputs:
+  pipelineName:
+    Value: !Ref theBestestPipeline
+    Export:
+      Name: !Sub "theBestest-${envName}-deployPipeline"
 
 
 

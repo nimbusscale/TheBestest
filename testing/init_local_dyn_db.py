@@ -33,30 +33,29 @@ dynamodb = boto3.resource(service_name='dynamodb',
                           endpoint_url='http://localhost:8000')
 
 
-def get_dynamodb_table_specs(template_path):
-    """Identifies DynDB tables in a CFN template and returns dict of configs"""
-    dynamodb_table_specs = {}
-    logging.info("reading CFN Template {}".format(args.template_path))
-    with open(template_path) as template:
-        cfn_text = template.read()
+def get_dynamodb_table_specs():
+    """This function was intended to read the cfn template and grab the DynDB
+    table specs, but cfn's special syntax fer cfn functions causes too much of
+    an issue. May revisit in the future, but for now just return sane specs."""
 
-    # CFN uses ! to mark functions, but this is also used by YAML
-    # Must remove ! before loading YAML otherwise it will exit with error
-    cfn_yaml = yaml.safe_load(cfn_text.replace("!", ""))
+    dynamodb_table_specs = {
+        'itemTable': {
+            'TableName': 'thebestest_unittest_items',
+            'KeySchema': [
+                {'AttributeName': 'user_id', 'KeyType': 'HASH'},
+                {'AttributeName': 'category_name', 'KeyType': 'RANGE'}
+            ],
+            'AttributeDefinitions': [
+                {'AttributeName': 'user_id', 'AttributeType': 'S'},
+                {'AttributeName': 'category_name', 'AttributeType': 'S'}
+            ],
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        }
+    }
 
-    for resource_id in cfn_yaml['Resources']:
-        if (cfn_yaml['Resources'][resource_id]['Type'] ==
-                "AWS::DynamoDB::Table"):
-            logging.info("Identified CFN Resource {}".format(resource_id))
-            properties = cfn_yaml['Resources'][resource_id]['Properties']
-            # Replace ${envName} with unit test, this is done by CFN, but this
-            # function consumed the raw template and need to do the
-            # substitution too.
-            properties['TableName'] = properties['TableName'].replace(
-                '${envName}', 'unittest')
-            properties['TableName'] = properties['TableName'].replace(
-                'Sub ', '')
-            dynamodb_table_specs[resource_id] = properties
     return dynamodb_table_specs
 
 
@@ -81,7 +80,7 @@ def seed_items_table(table_name):
         table.put_item(Item=item)
 
 if __name__ == '__main__':
-    table_specs = get_dynamodb_table_specs(args.template_path)
+    table_specs = get_dynamodb_table_specs()
     create_dynamodb_tables(table_specs)
     seed_items_table(table_specs['itemTable']['TableName'])
 
