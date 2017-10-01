@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack for TheBestest App
 Parameters:
-  envName:
+  EnvName:
     Description: Name of the environment to be deployed
     Type: String
 Resources:
@@ -67,7 +67,7 @@ Resources:
   ApiGw:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: !Sub thebestest-${envName}-api
+      Name: !Sub thebestest-${EnvName}-api
       Description: Rest API for the bestest
 
   ApiAuthorizer:
@@ -83,7 +83,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub thebestest-${envName}-userpool
+      UserPoolName: !Sub thebestest-${EnvName}-userpool
       Policies:
         PasswordPolicy:
           MinimumLength: 6
@@ -95,7 +95,7 @@ Resources:
   AdminClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Sub thebestest-${envName}-adminclient
+      ClientName: !Sub thebestest-${EnvName}-adminclient
       UserPoolId: !Ref UserPool
       ExplicitAuthFlows:
         - ADMIN_NO_SRP_AUTH
@@ -106,7 +106,7 @@ Resources:
   ItemTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub thebestest_${envName}_items
+      TableName: !Sub thebestest_${EnvName}_items
       KeySchema:
         - AttributeName: user_id
           KeyType: HASH
@@ -195,7 +195,7 @@ Resources:
       # methods are updated
       RestApiMethods: !Sub |
         { "methods": [
-            "${getItemsMethod}
+            "${GetItemsMethod}
           ]
         }
 
