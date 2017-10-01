@@ -24,12 +24,16 @@ Resources:
                 Action:
                   - s3:Get*
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - s3:Get*
                   - s3:List*
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - cloudformation:CreateStack
@@ -74,19 +78,21 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - lambda:*
-                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:thebestest*"
+                Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:thebestest*
               - Effect: Allow
                 Action:
                   - apigateway:*
-                Resource: !Sub "arn:aws:apigateway:${AWS::Region}::/*"
+                Resource: !Sub arn:aws:apigateway:${AWS::Region}::/*
               - Effect: Allow
                 Action:
                   - dynamodb:*Table
-                Resource: !Join [ "", ["arn:aws:dynamodb:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":table/*" ] ]
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
               - Effect: Allow
                 Action:
                   - iam:GetRole
@@ -96,11 +102,11 @@ Resources:
                   - iam:DetachRolePolicy
                   - iam:PutRolePolicy
                   - iam:DeleteRolePolicy
-                Resource: !Join [ "", ["arn:aws:iam::", !Ref "AWS::AccountId", ":role/*" ] ]
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/*
               - Effect: Allow
                 Action:
                   - iam:PassRole
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/thebestest*LambdaRole*"
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/thebestest*LambdaRole*
               - Effect: Allow
                 Action:
                   - cloudformation:CreateChangeSet
@@ -118,7 +124,7 @@ Resources:
                 Action:
                   - states:CreateStateMachine
                   - states:DeleteStateMachine
-                Resource: !Join [ "", ["arn:aws:states:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":stateMachine:*" ] ]
+                Resource: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:*
 
   BuildRole:
     Type: AWS::IAM::Role
@@ -138,23 +144,31 @@ Resources:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
-                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/*" ] ]
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest*:log-stream:*" ] ]
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/thebestest*:log-stream:*
               - Effect: Allow
                 Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
+                  - s3:Get*
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
 
   TheBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub "thebestest-${EnvName}-build"
+      Name: !Sub thebestest-${EnvName}-build
       ServiceRole: !GetAtt BuildRole.Arn
       Source:
         Type: CODEPIPELINE
@@ -203,7 +217,7 @@ Resources:
               InputArtifacts:
                 - Name: thebestest-source
               OutputArtifacts:
-                - Name: !Sub "thebestest-${EnvName}-deploy-template"
+                - Name: !Sub thebestest-${EnvName}-deploy-template
         - Name: DeployStack
           Actions:
             - Name: CreateChangeSet
@@ -214,18 +228,18 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub "thebestest-${EnvName}"
+                StackName: !Sub thebestest-${EnvName}
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
-                ChangeSetName: !Sub "thebestest-${EnvName}-changeset"
-                TemplatePath: !Sub "thebestest-${EnvName}-deploy-template::stack_deploy.yaml"
+                ChangeSetName: !Sub thebestest-${EnvName}-changeset
+                TemplatePath: !Sub thebestest-${EnvName}-deploy-template::stack_deploy.yaml
                 RoleArn: !GetAtt CloudformationRole.Arn
                 ParameterOverrides: !Sub |
                   {
                     "EnvName" : "${EnvName}"
                   }
               InputArtifacts:
-                - Name: !Sub "thebestest-${EnvName}-deploy-template"
+                - Name: !Sub thebestest-${EnvName}-deploy-template
             - Name: ExecuteChangeSet
               RunOrder: 2
               ActionTypeId:
@@ -234,15 +248,15 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub "thebestest-${EnvName}"
+                StackName: !Sub thebestest-${EnvName}
                 ActionMode: CHANGE_SET_EXECUTE
-                ChangeSetName: !Sub "thebestest-${EnvName}-changeset"
+                ChangeSetName: !Sub thebestest-${EnvName}-changeset
 
 Outputs:
   PipelineName:
     Value: !Ref TheBestestPipeline
     Export:
-      Name: !Sub "TheBestest-${EnvName}-DeployPipeline"
+      Name: !Sub TheBestest-${EnvName}-DeployPipeline
 
 
 

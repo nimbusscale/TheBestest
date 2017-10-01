@@ -19,22 +19,26 @@ Resources:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
-                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/*" ] ]
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Join [ "", ["arn:aws:logs:" , !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":log-group:/aws/codebuild/thebestest*:log-stream:*" ] ]
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/thebestest*:log-stream:*
               - Effect: Allow
                 Action:
                   - s3:Get*
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - s3:Get*
                   - s3:List*
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - cloudformation:ValidateTemplate
@@ -74,12 +78,16 @@ Resources:
                 Action:
                   - s3:Get*
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - s3:Get*
                   - s3:List*
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket]]
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
                   - codebuild:BatchGetBuilds
