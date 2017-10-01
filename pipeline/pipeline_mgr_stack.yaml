@@ -4,7 +4,7 @@ Parameters:
   OAuthToken:
     Type: String
 Resources:
-  pipelineMgrLambdaRole:
+  PipelineMgrLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -23,7 +23,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue theBestest-pipelineBucket, "/*"]]
+                Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
               - Effect: Allow
                 Action:
                   - apigateway:*
@@ -38,114 +38,114 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  webhookHandler:
+  WebhookHandler:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.webhook_handler
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
 
-  retrieveSource:
+  RetrieveSource:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.retrieve_source
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
-          S3_BUCKET: !ImportValue theBestest-pipelineBucket
+          S3_BUCKET: !ImportValue TheBestest-PipelineBucket
 
-  startTestPipeline:
+  StartTestPipeline:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.start_pipeline
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue theBestest-testPipeline
+          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
 
-  checkTestPipelineStatus:
+  CheckTestPipelineStatus:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.check_pipeline_status
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
-          PIPELINE_NAME: !ImportValue theBestest-testPipeline
+          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
 
-  setTestStatus:
+  SetTestStatus:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.set_github_status
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue theBestest-testPipeline
+          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
 
-  startStageDeployPipeline:
+  StartStageDeployPipeline:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.start_pipeline
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue theBestest-stage-deployPipeline
+          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
 
-  checkStageDeployStatus:
+  CheckStageDeployStatus:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.check_pipeline_status
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
-          PIPELINE_NAME: !ImportValue theBestest-stage-deployPipeline
+          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
 
-  setStageDeployStatus:
+  SetStageDeployStatus:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline_mgr
       Handler: pipeline_mgr.set_github_status
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue theBestest-stage-deployPipeline
+          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
 
 
-  pipelineMgrStateMachineRole:
+  PipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -166,7 +166,7 @@ Resources:
                  # Todo Lockdown?
                 Resource: "*"
 
-  pipelineMgrStateMachine:
+  PipelineMgrStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       DefinitionString: !Sub |
@@ -176,7 +176,7 @@ Resources:
         	"States": {
         		"HandleWebhook": {
         			"Type": "Task",
-        			"Resource": "${webhookHandler.Arn}",
+        			"Resource": "${WebhookHandler.Arn}",
         			"Next": "PipelineAction"
         		},
         		"PipelineAction": {
@@ -190,17 +190,17 @@ Resources:
         		},
         		"RetrieveTestSource": {
         			"Type": "Task",
-        			"Resource": "${retrieveSource.Arn}",
+        			"Resource": "${RetrieveSource.Arn}",
         			"Next": "StartUnitTest"
         		},
         		"StartUnitTest": {
         			"Type": "Task",
-        			"Resource": "${startTestPipeline.Arn}",
+        			"Resource": "${StartTestPipeline.Arn}",
         			"Next": "CheckUnitTestStatus"
         		},
         		"CheckUnitTestStatus": {
         			"Type": "Task",
-        			"Resource": "${checkTestPipelineStatus.Arn}",
+        			"Resource": "${CheckTestPipelineStatus.Arn}",
         			"Next": "UnitTestStatus"
         		},
         		"UnitTestStatus": {
@@ -219,7 +219,7 @@ Resources:
         		},
         		"SetUnitTestStatus": {
         			"Type": "Task",
-        			"Resource": "${setTestStatus.Arn}",
+        			"Resource": "${SetTestStatus.Arn}",
         			"Next": "CheckDeployToStage"
         		},
         		"CheckDeployToStage": {
@@ -240,12 +240,12 @@ Resources:
         		},
         		"StartStageDeploy": {
         			"Type": "Task",
-        			"Resource": "${startStageDeployPipeline.Arn}",
+        			"Resource": "${StartStageDeployPipeline.Arn}",
         			"Next": "CheckStageDeployStatus"
         		},
         		"CheckStageDeployStatus": {
         			"Type": "Task",
-        			"Resource": "${checkStageDeployStatus.Arn}",
+        			"Resource": "${CheckStageDeployStatus.Arn}",
         			"Next": "StageDeployStatus"
         		},
         		"StageDeployStatus": {
@@ -264,7 +264,7 @@ Resources:
         		},
         		"SetStageDeployStatus": {
         			"Type": "Task",
-        			"Resource": "${setStageDeployStatus.Arn}",
+        			"Resource": "${SetStageDeployStatus.Arn}",
         			"End": true
         		},
         		"End": {
@@ -273,11 +273,11 @@ Resources:
         		}
         	}
         }
-      RoleArn: !GetAtt pipelineMgrStateMachineRole.Arn
+      RoleArn: !GetAtt PipelineMgrStateMachineRole.Arn
 
-  pipelineMgrGWRole:
+  PipelineMgrGWRole:
     Type: AWS::IAM::Role
-    DependsOn: pipelineMgrStateMachine
+    DependsOn: PipelineMgrStateMachine
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -294,67 +294,67 @@ Resources:
               - Effect: Allow
                 Action:
                  - states:StartExecution
-                Resource: !Ref pipelineMgrStateMachine
+                Resource: !Ref PipelineMgrStateMachine
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
-  pipelineMgrGW:
+  PipelineMgrGW:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: !Sub thebestest-pipelinemgr-api
       Description: Rest API for the bestest pipeline manager
 
-  webhookEndPointResource:
+  WebhookEndPointResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: !GetAtt pipelineMgrGW.RootResourceId
+      ParentId: !GetAtt PipelineMgrGW.RootResourceId
       PathPart: webhook
-      RestApiId: !Ref pipelineMgrGW
+      RestApiId: !Ref PipelineMgrGW
 
-  webhookEndPointMethod:
+  WebhookEndPointMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      RestApiId: !Ref pipelineMgrGW
-      ResourceId: !Ref webhookEndPointResource
+      RestApiId: !Ref PipelineMgrGW
+      ResourceId: !Ref WebhookEndPointResource
       HttpMethod: POST
       AuthorizationType: NONE
       Integration:
         Type: AWS
         IntegrationHttpMethod: POST
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
-        Credentials: !GetAtt pipelineMgrGWRole.Arn
+        Credentials: !GetAtt PipelineMgrGWRole.Arn
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:
           application/json: !Sub |
             {
               "input": "$util.escapeJavaScript($input.json('$'))",
               "name": "$context.requestId",
-              "stateMachineArn": "${pipelineMgrStateMachine}"
+              "stateMachineArn": "${PipelineMgrStateMachine}"
             }
         IntegrationResponses:
           - StatusCode: 200
       MethodResponses:
         - StatusCode: 200
 
-  apiGwStageDeployer:
+  ApiGwStageDeployer:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/apigw_stage_deployer
       Handler: apigw_stage_deployer.deploy_stage
-      Role: !GetAtt pipelineMgrLambdaRole.Arn
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
 
-  pipelineMgrStageDeployer:
-    Type: Custom::pipelineMgrStageDeployer
+  PipelineMgrStageDeployer:
+    Type: Custom::PipelineMgrStageDeployer
     Properties:
-      ServiceToken: !GetAtt apiGwStageDeployer.Arn
+      ServiceToken: !GetAtt ApiGwStageDeployer.Arn
       StageName: pipelinemgr
-      RestApiId: !Ref pipelineMgrGW
+      RestApiId: !Ref PipelineMgrGW
       # Used to make sure this custom resource is updated when
-      # webhookEndPointMethod and pipelineMgrStateMachine is updated.
-      WebhookEndPoint: !Ref webhookEndPointMethod
-      PipelineMgrStateMachine: !Ref pipelineMgrStateMachine
+      # WebhookEndPointMethod and PipelineMgrStateMachine is updated.
+      WebhookEndPoint: !Ref WebhookEndPointMethod
+      PipelineMgrStateMachine: !Ref PipelineMgrStateMachine
 
 

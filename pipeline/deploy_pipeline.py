@@ -85,7 +85,7 @@ def cfn_deploy(stack_name, template_path, env_name):
 
     if env_name:
         deploy_opts = (deploy_opts +
-                       " --parameter-overrides envName={}".format(
+                       " --parameter-overrides EnvName={}".format(
                            env_name))
 
     deploy_cmd = "aws cloudformation deploy {}".format(deploy_opts)

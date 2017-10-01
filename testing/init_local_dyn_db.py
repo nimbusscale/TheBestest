@@ -39,7 +39,7 @@ def get_dynamodb_table_specs():
     an issue. May revisit in the future, but for now just return sane specs."""
 
     dynamodb_table_specs = {
-        'itemTable': {
+        'ItemTable': {
             'TableName': 'thebestest_unittest_items',
             'KeySchema': [
                 {'AttributeName': 'user_id', 'KeyType': 'HASH'},
@@ -82,7 +82,7 @@ def seed_items_table(table_name):
 if __name__ == '__main__':
     table_specs = get_dynamodb_table_specs()
     create_dynamodb_tables(table_specs)
-    seed_items_table(table_specs['itemTable']['TableName'])
+    seed_items_table(table_specs['ItemTable']['TableName'])
 
 
 

@@ -11,9 +11,9 @@ def get_cognito_info(cfn_stackname):
     """Gets Cognito info from stack outputs"""
     cfn_stack = cloudformation.Stack(cfn_stackname)
     for output in cfn_stack.outputs:
-        if output['OutputKey'] == 'userPoolId':
+        if output['OutputKey'] == 'UserPoolId':
             userpool_id = output['OutputValue']
-        elif output['OutputKey'] == 'adminClientId':
+        elif output['OutputKey'] == 'AdminClientId':
             adminclient_id = output['OutputValue']
     return {'userpool_id': userpool_id, 'adminclient_id': adminclient_id}
 
