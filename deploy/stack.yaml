@@ -8,7 +8,7 @@ Resources:
 ###############################################################################
 ## Roles
 ###############################################################################
-  lambdaRole:
+  LambdaRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,11 +34,11 @@ Resources:
                   - dynamodb:Query
                   - dynamodb:Scan
                   - dynamodb:UpdateItem
-                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${itemTable}
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ItemTable}
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  stageDeployerLambdaRole:
+  StageDeployerLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -64,23 +64,23 @@ Resources:
 ###############################################################################
 ## API Infra and User Pool
 ###############################################################################
-  apiGw:
+  ApiGw:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: !Sub thebestest-${envName}-api
       Description: Rest API for the bestest
 
-  apiAuthorizer:
+  ApiAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
       Name: userpool
-      RestApiId: !Ref apiGw
+      RestApiId: !Ref ApiGw
       IdentitySource: method.request.header.Authorization
       Type: COGNITO_USER_POOLS
       ProviderARNs:
-        - !GetAtt userPool.Arn
+        - !GetAtt UserPool.Arn
 
-  userPool:
+  UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: !Sub thebestest-${envName}-userpool
@@ -92,18 +92,18 @@ Resources:
           RequireNumbers: false
           RequireSymbols: false
 
-  adminClient:
+  AdminClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       ClientName: !Sub thebestest-${envName}-adminclient
-      UserPoolId: !Ref userPool
+      UserPoolId: !Ref UserPool
       ExplicitAuthFlows:
         - ADMIN_NO_SRP_AUTH
 
 ###############################################################################
 ## DynamoDB Tables
 ###############################################################################
-  itemTable:
+  ItemTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub thebestest_${envName}_items
@@ -126,26 +126,26 @@ Resources:
 ###############################################################################
 
 # /items
-  itemsResource:
+  ItemsResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: !GetAtt apiGw.RootResourceId
+      ParentId: !GetAtt ApiGw.RootResourceId
       PathPart: items
-      RestApiId: !Ref apiGw
+      RestApiId: !Ref ApiGw
 
 # GET /items
-  getItemsMethod:
+  GetItemsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      RestApiId: !Ref apiGw
-      ResourceId: !Ref itemsResource
+      RestApiId: !Ref ApiGw
+      ResourceId: !Ref ItemsResource
       HttpMethod: GET
       AuthorizationType: COGNITO_USER_POOLS
-      AuthorizerId: !Ref apiAuthorizer
+      AuthorizerId: !Ref ApiAuthorizer
       Integration:
         Type: AWS
         IntegrationHttpMethod: POST
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getItemsFunction.Arn}/invocations"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetItemsFunction.Arn}/invocations"
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:
           application/json: "{\"data\": \"\", \"metadata\" : { \"requestId\" : \"$context.requestId\", \"userId\": \"$context.authorizer.claims.sub\" }}"
@@ -154,43 +154,43 @@ Resources:
       MethodResponses:
         - StatusCode: 200
 
-  getItemsFunction:
+  GetItemsFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code: ../functions/get_items
       Environment:
         Variables:
-          itemsTableName: !Ref itemTable
+          itemsTableName: !Ref ItemTable
       Handler: get_items.lambda_handler
-      Role: !GetAtt lambdaRole.Arn
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
 
-  getItemsPermission:
+  GetItemsPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGw}/*/GET/items"
-      FunctionName: !Ref getItemsFunction
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGw}/*/GET/items"
+      FunctionName: !Ref GetItemsFunction
       Action: lambda:InvokeFunction
 
 ###############################################################################
 ## Stage Deployer
 ###############################################################################
 
-  stageDeployerLambda:
+  StageDeployerLambda:
     Type: AWS::Lambda::Function
     Properties:
       Code: ../pipeline/functions/apigw_stage_deployer
       Handler: apigw_stage_deployer.deploy_stage
-      Role: !GetAtt stageDeployerLambdaRole.Arn
+      Role: !GetAtt StageDeployerLambdaRole.Arn
       Runtime: python3.6
 
-  apiGwStageDeployer:
-    Type: Custom::apiGwStageDeployer
+  ApiGwStageDeployer:
+    Type: Custom::ApiGwStageDeployer
     Properties:
-      ServiceToken: !GetAtt stageDeployerLambda.Arn
+      ServiceToken: !GetAtt StageDeployerLambda.Arn
       StageName: thebestest
-      RestApiId: !Ref apiGw
+      RestApiId: !Ref ApiGw
       # Used to make sure this custom resource is updated when
       # methods are updated
       RestApiMethods: !Sub |
@@ -204,10 +204,10 @@ Resources:
 ###############################################################################
 
 Outputs:
-  userPoolId:
-    Value: !Ref userPool
-  adminClientId:
-    Value: !Ref adminClient
-  apiGwId:
-    Value: !Ref apiGw
+  UserPoolId:
+    Value: !Ref UserPool
+  AdminClientId:
+    Value: !Ref AdminClient
+  ApiGwId:
+    Value: !Ref ApiGw
 

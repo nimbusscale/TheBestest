@@ -5,7 +5,7 @@ Parameters:
     Description: Name of the environment to be deployed
     Type: String
 Resources:
-  pipelineRole:
+  PipelineRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -46,17 +46,17 @@ Resources:
               - Effect: Allow
                 Action:
                   - iam:PassRole
-                Resource: !GetAtt cloudformationRole.Arn
+                Resource: !GetAtt CloudformationRole.Arn
               - Effect: Allow
                 Action:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
                 Resource:
-                  - !GetAtt theBestestBuild.Arn
+                  - !GetAtt TheBestestBuild.Arn
 
 
 
-  cloudformationRole:
+  CloudformationRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -121,7 +121,7 @@ Resources:
                   - states:DeleteStateMachine
                 Resource: !Join [ "", ["arn:aws:states:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":stateMachine:*" ] ]
 
-  buildRole:
+  BuildRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -152,11 +152,11 @@ Resources:
                   - s3:PutObject
                 Resource: !Join [ "", ["arn:aws:s3:::", !ImportValue TheBestest-PipelineBucket, "/*"]]
 
-  theBestestBuild:
+  TheBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub "thebestest-${envName}-build"
-      ServiceRole: !GetAtt buildRole.Arn
+      ServiceRole: !GetAtt BuildRole.Arn
       Source:
         Type: CODEPIPELINE
         BuildSpec: pipeline/buildspec-package.yaml
@@ -168,14 +168,14 @@ Resources:
         Type: CODEPIPELINE
 
 
-  theBestestPipeline:
+  TheBestestPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: !Ref AWS::StackName
       ArtifactStore:
         Location: !ImportValue TheBestest-PipelineBucket
         Type: S3
-      RoleArn: !GetAtt pipelineRole.Arn
+      RoleArn: !GetAtt PipelineRole.Arn
       Stages:
         - Name: Source
           Actions:
@@ -200,7 +200,7 @@ Resources:
                 Provider: CodeBuild
                 Version: 1
               Configuration:
-                ProjectName: !Ref theBestestBuild
+                ProjectName: !Ref TheBestestBuild
               InputArtifacts:
                 - Name: thebestest-source
               OutputArtifacts:
@@ -220,7 +220,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM
                 ChangeSetName: !Sub "thebestest-${envName}-changeset"
                 TemplatePath: !Sub "thebestest-${envName}-deploy-template::stack_deploy.yaml"
-                RoleArn: !GetAtt cloudformationRole.Arn
+                RoleArn: !GetAtt CloudformationRole.Arn
                 ParameterOverrides: !Sub |
                   {
                     "envName" : "${envName}"
@@ -240,10 +240,10 @@ Resources:
                 ChangeSetName: !Sub "thebestest-${envName}-changeset"
 
 Outputs:
-  pipelineName:
-    Value: !Ref theBestestPipeline
+  PipelineName:
+    Value: !Ref TheBestestPipeline
     Export:
-      Name: !Sub "theBestest-${envName}-deployPipeline"
+      Name: !Sub "TheBestest-${envName}-DeployPipeline"
 
 
 
