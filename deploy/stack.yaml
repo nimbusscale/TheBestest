@@ -180,7 +180,7 @@ Resources:
   stageDeployerLambda:
     Type: AWS::Lambda::Function
     Properties:
-      Code: pipeline/functions/apigw_stage_deployer
+      Code: ../pipeline/functions/apigw_stage_deployer
       Handler: apigw_stage_deployer.deploy_stage
       Role: !GetAtt stageDeployerLambdaRole.Arn
       Runtime: python3.6
