@@ -44,8 +44,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.webhook_handler
+      Code: functions_deploy/pipeline
+      Handler: manager.webhook_handler
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
 
@@ -54,8 +54,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.retrieve_source
+      Code: functions_deploy/pipeline
+      Handler: manager.retrieve_source
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
@@ -68,8 +68,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.start_pipeline
+      Code: functions_deploy/pipeline
+      Handler: manager.start_pipeline
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
@@ -82,8 +82,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.check_pipeline_status
+      Code: functions_deploy/pipeline
+      Handler: manager.check_pipeline_status
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
@@ -95,8 +95,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.set_github_status
+      Code: functions_deploy/pipeline
+      Handler: manager.set_github_status
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
@@ -109,8 +109,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.start_pipeline
+      Code: functions_deploy/pipeline
+      Handler: manager.start_pipeline
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
@@ -123,8 +123,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.check_pipeline_status
+      Code: functions_deploy/pipeline
+      Handler: manager.check_pipeline_status
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:
@@ -136,8 +136,8 @@ Resources:
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.set_github_status
+      Code: functions_deploy/pipeline
+      Handler: manager.set_github_status
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Environment:

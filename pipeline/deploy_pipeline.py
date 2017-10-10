@@ -42,7 +42,7 @@ def prep_lambdas():
     rsync_cmd = "rsync -av ./functions/ ./functions_deploy/"
     subprocess.run(rsync_cmd.split(), check=True)
 
-    gh_install = "pip install github3.py -t ./functions_deploy/pipeline_mgr/"
+    gh_install = "pip install github3.py -t ./functions_deploy/pipeline/"
     subprocess.run(gh_install.split(), check=True)
 
 

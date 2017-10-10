@@ -33,7 +33,6 @@ def repackage_source(src_zip_path, dest_zip_path):
 
 """Lambda's"""
 
-
 def webhook_handler(event, context):
     """Lambda that evaluates the input provided by the API GW and determines
     if it's a valid PR Open Webhook notice.

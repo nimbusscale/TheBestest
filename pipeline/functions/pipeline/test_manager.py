@@ -2,7 +2,7 @@
 import json
 import pytest
 
-from pipeline_mgr import *
+from manager import *
 
 @pytest.fixture
 def webhook_json():
