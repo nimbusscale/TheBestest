@@ -6,6 +6,8 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import boto3
 import github3
 
+from pipeline_mgr.pull_request import PullRequest
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -39,19 +41,12 @@ def webhook_handler(event, context):
     """
     pipeline_info = {}
     try:
-        pull_request = event['pull_request']
-        pr_info = {
-            'owner': pull_request['head']['repo']['owner']['login'],
-            'repo': pull_request['head']['repo']['name'],
-            'url': pull_request['url'],
-            'title': pull_request['title'],
-            'branch': pull_request['head']['ref'],
-            'sha': pull_request['head']['sha']
-        }
+        pr_data = event['pull_request']
+        pull_request = PullRequest(pr_data)
     except:
         logger.error(event)
         raise Exception("Invalid Github PR Webhook")
-    pipeline_info['pr_info'] = pr_info
+    pipeline_info['pull_request'] = pull_request
 
     pipeline_action = "none"
     if event['action'] in ['opened', 'synchronize']:
@@ -60,9 +55,9 @@ def webhook_handler(event, context):
         pipeline_action = "prod_deploy"
     pipeline_info['action'] = pipeline_action
     logger.info("{} for PR {} ({}) of branch {}".format(pipeline_action,
-                                                         pr_info['title'],
-                                                         pr_info['url'],
-                                                         pr_info['branch']))
+                                                         pull_request.title,
+                                                         pull_request.url,
+                                                         pull_request.branch_name))
     return pipeline_info
 
 
@@ -70,17 +65,15 @@ def retrieve_source(event, context):
     """Lambda that retrieves a zipball of source based on a SHA and uploads
     it to S3
     """
-    owner = event['pr_info']['owner']
-    repo_name = event['pr_info']['repo']
-    sha = event['pr_info']['sha']
+    pr = event['pull_request']
     token = os.environ['OAUTH_TOKEN']
     bucket = os.environ['S3_BUCKET']
     # Download zipball from GH
     gh = github3.login(token=token)
-    repo = gh.repository(owner, repo_name)
-    download_path = '/tmp/' + sha + '.zip'
+    repo = gh.repository(pr.owner, pr.repo_name)
+    download_path = '/tmp/' + pr.sha + '.zip'
     logger.info("Downloading zipball to {}".format(download_path))
-    repo.archive('zipball', path=download_path, ref=sha)
+    repo.archive('zipball', path=download_path, ref=pr.sha)
     # Repackage
     zipball_name = 'thebestest-source.zip'
     zipball_path = '/tmp/' + zipball_name
@@ -109,10 +102,7 @@ def start_pipeline(event, context):
 
     Pipeline name is provided by Env Var
     """
-    owner = event['pr_info']['owner']
-    repo_name = event['pr_info']['repo']
-    sha = event['pr_info']['sha']
-    url = event['pr_info']['url']
+    pr = event['pull_request']
     pipeline_name = os.environ['PIPELINE_NAME']
     token = os.environ['OAUTH_TOKEN']
     codepipeline = boto3.client('codepipeline')
@@ -120,9 +110,9 @@ def start_pipeline(event, context):
     execution_id = response['pipelineExecutionId']
     # Set status on the PR in Github
     gh = github3.login(token=token)
-    repo = gh.repository(owner, repo_name)
-    repo.create_status(sha, 'pending',
-                       target_url=url,
+    repo = gh.repository(pr.owner, pr.repo_name)
+    repo.create_status(pr.sha, 'pending',
+                       target_url=pr.url,
                        context=pipeline_name,
                        description=execution_id)
     event['execution_id'] = execution_id
@@ -142,10 +132,7 @@ def check_pipeline_status(event, context):
 
 def set_github_status(event, context):
     """Lambda that sets the status of the PR to failure"""
-    owner = event['pr_info']['owner']
-    repo_name = event['pr_info']['repo']
-    sha = event['pr_info']['sha']
-    url = event['pr_info']['url']
+    pr = event['pull_request']
     execution_id = event['execution_id']
     token = os.environ['OAUTH_TOKEN']
     pipeline_name = os.environ['PIPELINE_NAME']
@@ -157,9 +144,9 @@ def set_github_status(event, context):
     elif pipeline_status == 'Superseded':
         pr_status = 'error'
     gh = github3.login(token=token)
-    repo = gh.repository(owner, repo_name)
-    repo.create_status(sha, pr_status,
-                       target_url=url,
+    repo = gh.repository(pr.owner, pr.repo_name)
+    repo.create_status(pr.sha, pr_status,
+                       target_url=pr.url,
                        context=pipeline_name,
                        description=execution_id)
     return event
