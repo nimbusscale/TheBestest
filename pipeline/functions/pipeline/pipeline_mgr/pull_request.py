@@ -1,3 +1,5 @@
+import github3
+
 class PullRequest:
 
     def __init__(self, pr_data):
@@ -24,6 +26,24 @@ class PullRequest:
     @property
     def branch_name(self):
         return self.data['head']['ref']
+
+    def set_status(self, token, status, context,
+                      description):
+        valid_status = ['pending', 'success', 'failure', 'error']
+        if status not in valid_status:
+            raise TypeError(
+                "{} is not a valid status. Valid statuses are {}".format(
+                    status, valid_status
+                )
+            )
+        gh = github3.login(token=token)
+        repo = gh.repository(self.owner, self.repo_name)
+        repo.create_status(self.sha,
+                           status,
+                           target_url=self.url,
+                           context=context,
+                           description=description
+                           )
 
     @property
     def owner(self):

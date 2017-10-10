@@ -108,13 +108,10 @@ def start_pipeline(event, context):
     codepipeline = boto3.client('codepipeline')
     response = codepipeline.start_pipeline_execution(name=pipeline_name)
     execution_id = response['pipelineExecutionId']
-    # Set status on the PR in Github
-    gh = github3.login(token=token)
-    repo = gh.repository(pr.owner, pr.repo_name)
-    repo.create_status(pr.sha, 'pending',
-                       target_url=pr.url,
-                       context=pipeline_name,
-                       description=execution_id)
+    pr.set_status(token,
+                  'pending',
+                  pipeline_name,
+                  execution_id)
     event['execution_id'] = execution_id
     event['pipeline_status'] = 'InProgress'
     return event
@@ -143,12 +140,10 @@ def set_github_status(event, context):
         pr_status = 'failure'
     elif pipeline_status == 'Superseded':
         pr_status = 'error'
-    gh = github3.login(token=token)
-    repo = gh.repository(pr.owner, pr.repo_name)
-    repo.create_status(pr.sha, pr_status,
-                       target_url=pr.url,
-                       context=pipeline_name,
-                       description=execution_id)
+    pr.set_status(token,
+                  pr_status,
+                  pipeline_name,
+                  execution_id)
     return event
 
 
