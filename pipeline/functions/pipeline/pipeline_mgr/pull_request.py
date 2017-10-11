@@ -1,9 +1,11 @@
 import logging
 
 import github3
+from pipeline_mgr.source import Source
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 class PullRequest:
 
@@ -66,6 +68,14 @@ class PullRequest:
     @property
     def repo_name(self):
         return self.data['head']['repo']['name']
+
+    def retrieve_source(self, token, bucket_name):
+        source = Source(token, self.owner, self.repo_name, self.sha,
+                        bucket_name)
+        source.download_archive()
+        source.repackage_archive()
+        version_id = source.upload_archive()
+        return version_id
 
     @property
     def sha(self):

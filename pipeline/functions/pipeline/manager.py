@@ -11,30 +11,6 @@ from pipeline_mgr.pull_request import PullRequest
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-"""Helper Functions"""
-
-
-def repackage_source(src_zip_path, dest_zip_path):
-    """Repackages a zipball retrieved from Github to be as expected by
-    codepipeline.
-    """
-    logger.info("Repackaging {} to {}".format(src_zip_path, dest_zip_path))
-    work_path = '/tmp'
-    with ZipFile(src_zip_path) as src_zip:
-        zip_info = src_zip.infolist()
-        unzip_dir = work_path + '/' + zip_info[0].filename
-        src_zip.extractall(path=work_path)
-    with ZipFile(dest_zip_path, mode='w',
-                 compression=ZIP_DEFLATED) as dest_zip:
-        for root, dirs, files in os.walk(unzip_dir):
-            for file in files:
-                src_path = os.path.join(root, file)
-                arc_path = src_path.replace(unzip_dir, '')
-                dest_zip.write(src_path, arcname=arc_path)
-
-
-"""Lambda's"""
-
 def webhook_handler(event, context):
     """Lambda that evaluates the input provided by the API GW and determines
     if it's a valid PR Open Webhook notice.
@@ -68,32 +44,8 @@ def retrieve_source(event, context):
     pr = PullRequest(event['pull_request']['data'])
     token = os.environ['OAUTH_TOKEN']
     bucket = os.environ['S3_BUCKET']
-    # Download zipball from GH
-    gh = github3.login(token=token)
-    repo = gh.repository(pr.owner, pr.repo_name)
-    download_path = '/tmp/' + pr.sha + '.zip'
-    logger.info("Downloading zipball to {}".format(download_path))
-    repo.archive('zipball', path=download_path, ref=pr.sha)
-    # Repackage
-    zipball_name = 'thebestest-source.zip'
-    zipball_path = '/tmp/' + zipball_name
-    repackage_source(download_path, zipball_path)
-    # Upload zipball from S3
-    s3 = boto3.client('s3')
-    logger.info("Uploading {} to s3://{}/{}".format(zipball_path, bucket,
-                                                     zipball_name))
-    with open(zipball_path, 'rb') as zipball:
-        response = s3.put_object(Bucket=bucket,
-                                 Key=zipball_name,
-                                 Body=zipball)
-    event['version_id'] = response['VersionId']
-    logger.info("Upload has Version ID {}".format(event['version_id']))
-    # Cleanup
-    logger.info("Removing {}".format(download_path))
-    os.remove(download_path)
-    logger.info("Removing {}".format(zipball_path))
-    os.remove(zipball_path)
-    # Return
+    s3_version_id = pr.retrieve_source(token, bucket)
+    event['version_id'] = s3_version_id
     return event
 
 
