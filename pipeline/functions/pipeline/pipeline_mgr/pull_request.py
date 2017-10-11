@@ -1,4 +1,9 @@
+import logging
+
 import github3
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 class PullRequest:
 
@@ -38,6 +43,15 @@ class PullRequest:
             )
         gh = github3.login(token=token)
         repo = gh.repository(self.owner, self.repo_name)
+        logger.info(
+            "Setting status on {}@{}:{} for {} to {}".format(
+                self.owner,
+                self.repo_name,
+                self.sha,
+                context,
+                status
+            )
+        )
         repo.create_status(self.sha,
                            status,
                            target_url=self.url,

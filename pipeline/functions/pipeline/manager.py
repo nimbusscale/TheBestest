@@ -46,7 +46,7 @@ def webhook_handler(event, context):
     except:
         logger.error(event)
         raise Exception("Invalid Github PR Webhook")
-    pipeline_info['pull_request'] = pull_request
+    pipeline_info['pull_request'] = pull_request.__dict__
 
     pipeline_action = "none"
     if event['action'] in ['opened', 'synchronize']:
@@ -65,7 +65,7 @@ def retrieve_source(event, context):
     """Lambda that retrieves a zipball of source based on a SHA and uploads
     it to S3
     """
-    pr = event['pull_request']
+    pr = PullRequest(event['pull_request']['data'])
     token = os.environ['OAUTH_TOKEN']
     bucket = os.environ['S3_BUCKET']
     # Download zipball from GH
@@ -102,7 +102,7 @@ def start_pipeline(event, context):
 
     Pipeline name is provided by Env Var
     """
-    pr = event['pull_request']
+    pr = PullRequest(event['pull_request']['data'])
     pipeline_name = os.environ['PIPELINE_NAME']
     token = os.environ['OAUTH_TOKEN']
     codepipeline = boto3.client('codepipeline')
@@ -129,7 +129,7 @@ def check_pipeline_status(event, context):
 
 def set_github_status(event, context):
     """Lambda that sets the status of the PR to failure"""
-    pr = event['pull_request']
+    pr = PullRequest(event['pull_request']['data'])
     execution_id = event['execution_id']
     token = os.environ['OAUTH_TOKEN']
     pipeline_name = os.environ['PIPELINE_NAME']
