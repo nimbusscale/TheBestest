@@ -6,7 +6,6 @@ import boto3
 import github3
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 
 class Source:

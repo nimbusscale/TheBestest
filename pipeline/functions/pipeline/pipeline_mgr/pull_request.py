@@ -4,7 +4,6 @@ import github3
 from pipeline_mgr.source import Source
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 
 class PullRequest:
