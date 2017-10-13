@@ -29,10 +29,12 @@ def webhook_handler(event, context):
     elif event['action'] == 'closed' and event['pull_request']['merged']:
         pipeline_action = "prod_deploy"
     pipeline_info['action'] = pipeline_action
-    logger.info("{} for PR {} ({}) of branch {}".format(pipeline_action,
-                                                         pull_request.title,
-                                                         pull_request.url,
-                                                         pull_request.branch_name))
+    logger.info(
+        "{} for PR {} ({}) of branch {}".format(pipeline_action,
+                                                pull_request.title,
+                                                pull_request.url,
+                                                pull_request.branch_name)
+    )
     return pipeline_info
 
 
