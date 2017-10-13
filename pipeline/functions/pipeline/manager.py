@@ -21,7 +21,7 @@ def webhook_handler(event, context):
     except:
         logger.error(event)
         raise Exception("Invalid Github PR Webhook")
-    pipeline_info['pull_request'] = pull_request.__dict__
+    pipeline_info['pull_request'] = pull_request.to_dict()
 
     pipeline_action = "none"
     if event['action'] in ['opened', 'synchronize']:

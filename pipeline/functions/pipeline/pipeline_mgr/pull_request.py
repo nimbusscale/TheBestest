@@ -17,7 +17,7 @@ class PullRequest:
             )
 
     def __repr__(self):
-        return str(self.data)
+        return str(self.to_dict())
 
     def __str__(self):
         pr_info = {
@@ -83,6 +83,25 @@ class PullRequest:
     @property
     def title(self):
         return self.data['title']
+
+    def to_dict(self):
+        return {
+                'title': self.title,
+                'url': self.url,
+                'head':
+                    {
+                        'ref': self.branch_name,
+                        'sha': self.sha,
+                        'repo':
+                            {
+                                'name': self.repo_name,
+                                'owner':
+                                    {
+                                        'login': self.owner
+                                    }
+                            }
+                    }
+                }
 
     @property
     def url(self):
