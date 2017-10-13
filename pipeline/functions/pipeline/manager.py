@@ -10,6 +10,7 @@ from pipeline_mgr.pipeline import Pipeline
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+
 def webhook_handler(event, context):
     """Lambda that evaluates the input provided by the API GW and determines
     if it's a valid PR Open Webhook notice.
@@ -67,11 +68,13 @@ def start_pipeline(event, context):
     event['pipeline'] = pipeline.to_dict()
     return event
 
+
 def check_pipeline_status(event, context):
     """Lambda that checks that status of a codepipeline execution id"""
     pipeline = Pipeline(event['pipeline'])
     event['pipeline'] = pipeline.to_dict()
     return event
+
 
 def set_github_status(event, context):
     """Lambda that sets the status of the PR to failure"""
