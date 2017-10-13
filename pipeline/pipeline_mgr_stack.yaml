@@ -207,7 +207,7 @@ Resources:
         		"UnitTestStatus": {
         			"Type": "Choice",
         			"Choices": [{
-        				"Variable": "$.pipeline_status",
+        				"Variable": "$.pipeline.status",
         				"StringEquals": "InProgress",
         				"Next": "UnitTestStatusWait"
         			}],
@@ -227,11 +227,11 @@ Resources:
         			"Type": "Choice",
         			"Choices": [{
         				"Or": [{
-        						"Variable": "$.pipeline_status",
+        						"Variable": "$.pipeline.status",
         						"StringEquals": "Failed"
         					},
         					{
-        						"Variable": "$.pipeline_status",
+        						"Variable": "$.pipeline.status",
         						"StringEquals": "Superseded"
         					}
         				],
@@ -252,7 +252,7 @@ Resources:
         		"StageDeployStatus": {
         			"Type": "Choice",
         			"Choices": [{
-        				"Variable": "$.pipeline_status",
+        				"Variable": "$.pipeline.status",
         				"StringEquals": "InProgress",
         				"Next": "StageDeployStatusWait"
         			}],

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import logging
 import os
-from zipfile import ZipFile, ZIP_DEFLATED
 
 import boto3
-import github3
 
 from pipeline_mgr.pull_request import PullRequest
+from pipeline_mgr.pipeline import Pipeline
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -41,9 +40,9 @@ def retrieve_source(event, context):
     """Lambda that retrieves a zipball of source based on a SHA and uploads
     it to S3
     """
-    pr = PullRequest(event['pull_request']['data'])
     token = os.environ['OAUTH_TOKEN']
     bucket = os.environ['S3_BUCKET']
+    pr = PullRequest(event['pull_request']['data'])
     s3_version_id = pr.retrieve_source(token, bucket)
     event['version_id'] = s3_version_id
     return event
@@ -54,38 +53,30 @@ def start_pipeline(event, context):
 
     Pipeline name is provided by Env Var
     """
-    pr = PullRequest(event['pull_request']['data'])
     pipeline_name = os.environ['PIPELINE_NAME']
     token = os.environ['OAUTH_TOKEN']
-    codepipeline = boto3.client('codepipeline')
-    response = codepipeline.start_pipeline_execution(name=pipeline_name)
-    execution_id = response['pipelineExecutionId']
+    pr = PullRequest(event['pull_request']['data'])
+    pipeline = Pipeline({'name': pipeline_name})
+    execution_id = pipeline.start()
     pr.set_status(token,
                   'pending',
                   pipeline_name,
                   execution_id)
-    event['execution_id'] = execution_id
-    event['pipeline_status'] = 'InProgress'
+    event['pipeline'] = pipeline.to_dict()
     return event
 
 def check_pipeline_status(event, context):
     """Lambda that checks that status of a codepipeline execution id"""
-    pipeline_name = os.environ['PIPELINE_NAME']
-    execution_id = event['execution_id']
-    codepipeline = boto3.client('codepipeline')
-    status_response = codepipeline.get_pipeline_execution(
-        pipelineName=pipeline_name,
-        pipelineExecutionId=execution_id)
-    event['pipeline_status'] = status_response['pipelineExecution']['status']
+    pipeline = Pipeline(event['pipeline'])
+    event['pipeline'] = pipeline.to_dict()
     return event
 
 def set_github_status(event, context):
     """Lambda that sets the status of the PR to failure"""
-    pr = PullRequest(event['pull_request']['data'])
-    execution_id = event['execution_id']
     token = os.environ['OAUTH_TOKEN']
-    pipeline_name = os.environ['PIPELINE_NAME']
-    pipeline_status = event['pipeline_status']
+    pr = PullRequest(event['pull_request']['data'])
+    pipeline = Pipeline(event['pipeline'])
+    pipeline_status = pipeline.staus
     if pipeline_status == 'Succeeded':
         pr_status = 'success'
     elif pipeline_status == 'Failed':
@@ -94,8 +85,8 @@ def set_github_status(event, context):
         pr_status = 'error'
     pr.set_status(token,
                   pr_status,
-                  pipeline_name,
-                  execution_id)
+                  pipeline.name,
+                  pipeline.execution_id)
     return event
 
 
