@@ -44,7 +44,7 @@ def retrieve_source(event, context):
     """
     token = os.environ['OAUTH_TOKEN']
     bucket = os.environ['S3_BUCKET']
-    pr = PullRequest(event['pull_request']['data'])
+    pr = PullRequest(event['pull_request'])
     s3_version_id = pr.retrieve_source(token, bucket)
     event['version_id'] = s3_version_id
     return event
@@ -57,7 +57,7 @@ def start_pipeline(event, context):
     """
     pipeline_name = os.environ['PIPELINE_NAME']
     token = os.environ['OAUTH_TOKEN']
-    pr = PullRequest(event['pull_request']['data'])
+    pr = PullRequest(event['pull_request'])
     pipeline = Pipeline({'name': pipeline_name})
     execution_id = pipeline.start()
     pr.set_status(token,
@@ -76,7 +76,7 @@ def check_pipeline_status(event, context):
 def set_github_status(event, context):
     """Lambda that sets the status of the PR to failure"""
     token = os.environ['OAUTH_TOKEN']
-    pr = PullRequest(event['pull_request']['data'])
+    pr = PullRequest(event['pull_request'])
     pipeline = Pipeline(event['pipeline'])
     pipeline_status = pipeline.staus
     if pipeline_status == 'Succeeded':
