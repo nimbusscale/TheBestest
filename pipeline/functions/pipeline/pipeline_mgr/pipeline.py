@@ -5,6 +5,7 @@ import boto3
 
 logger = logging.getLogger()
 
+
 class Pipeline:
 
     def __init__(self, pipeline_def):
