@@ -39,16 +39,6 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  WebhookHandler:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline
-      Handler: manager.webhook_handler
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-
   RetrieveSource:
     Type: AWS::Lambda::Function
     Properties:
@@ -145,6 +135,18 @@ Resources:
           OAUTH_TOKEN: !Ref OAuthToken
           PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
 
+  PipelineManagerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      # functions_deploy is a temp location created by the
+      # deploy_pipeline.infra.sh script
+      Code: functions_deploy/pipeline
+      Handler: manager.lambda_handler
+      Role: !GetAtt PipelineMgrLambdaRole.Arn
+      Runtime: python3.6
+      Environment:
+        Variables:
+          OAUTH_TOKEN: !Ref OAuthToken
 
   PipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
@@ -173,17 +175,23 @@ Resources:
       DefinitionString: !Sub |
         {
         	"Comment": "update Automatic testing or deployment of code kicked off by GH Webhooks",
-        	"StartAt": "HandleWebhook",
+        	"StartAt": "SetWebhookAction",
         	"States": {
+        		"SetWebhookAction": {
+        			"Type": "Pass",
+        			"Result": "webhook",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "HandleWebhook"
+        		},
         		"HandleWebhook": {
         			"Type": "Task",
-        			"Resource": "${WebhookHandler.Arn}",
+        			"Resource": "${PipelineManagerFunction.Arn}",
         			"Next": "PipelineAction"
         		},
         		"PipelineAction": {
         			"Type": "Choice",
         			"Choices": [{
-        				"Variable": "$.action",
+        				"Variable": "$.pipeline_action",
         				"StringEquals": "test",
         				"Next": "RetrieveTestSource"
         			}],

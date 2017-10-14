@@ -11,8 +11,19 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def webhook_handler(event, context):
-    """Lambda that evaluates the input provided by the API GW and determines
+def lambda_handler(event, context):
+    """Determines course of action based on action property passed to it by
+    state machine.
+    """
+    action = event['pipeline_action']
+
+    if action == 'webhook':
+        return webhook_handler(event)
+
+
+
+def webhook_handler(event):
+    """Evaluates the input provided by the API GW and determines
     if it's a valid PR Open Webhook notice.
     """
     pipeline_info = {}
@@ -23,13 +34,16 @@ def webhook_handler(event, context):
         logger.error(event)
         raise Exception("Invalid Github PR Webhook")
     pipeline_info['pull_request'] = pull_request.to_dict()
-
     pipeline_action = "none"
-    if event['action'] in ['opened', 'synchronize']:
-        pipeline_action = "test"
+    if event['action'] == 'opened':
+        pipeline_action = 'build_stack'
+    elif event['action'] == 'synchronize':
+        pipeline_action = 'test'
     elif event['action'] == 'closed' and event['pull_request']['merged']:
-        pipeline_action = "prod_deploy"
-    pipeline_info['action'] = pipeline_action
+        pipeline_action = 'prod_deploy'
+    elif event['action'] == 'closed' and not event['pull_request']['merged']:
+        pipeline_action = 'delete_stack'
+    pipeline_info['pipeline_action'] = pipeline_action
     logger.info(
         "{} for PR {} ({}) of branch {}".format(pipeline_action,
                                                 pull_request.title,
