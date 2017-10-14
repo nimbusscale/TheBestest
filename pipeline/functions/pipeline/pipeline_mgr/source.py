@@ -10,15 +10,18 @@ logger = logging.getLogger()
 
 class Source:
 
-    def __init__(self, token, repo_owner, repo_name, sha, bucket_name ):
+    def __init__(self, token, repo_owner, repo_name, pr_number, sha,
+                 bucket_name):
         self.token = token
         self.repo_owner = repo_owner
         self.repo_name = repo_name
+        self.number = str(pr_number)
         self.sha = sha
         self.bucket_name = bucket_name
 
-        self.download_path = '/tmp/' + sha + '.zip'
-        self.zipball_name = 'thebestest-source.zip'
+        self.download_path = '/tmp/' + self.sha + '.zip'
+        self.zipball_name = 'thebestest' + self.number + '.zip'
+        self.s3_path = 'source/' + self.zipball_name
         self.zipball_path = '/tmp/' + self.zipball_name
 
     def download_archive(self):
@@ -49,10 +52,10 @@ class Source:
     def upload_archive(self):
         s3 = boto3.client('s3')
         logger.info("Uploading {} to s3://{}/{}".format(
-            self.zipball_path, self.bucket_name, self.zipball_name))
+            self.zipball_path, self.bucket_name, self.s3_path))
         with open(self.zipball_path, 'rb') as zipball:
             response = s3.put_object(Bucket=self.bucket_name,
-                                     Key=self.zipball_name,
+                                     Key=self.s3_path,
                                      Body=zipball)
         version_id = response['VersionId']
         logger.info("Upload has Version ID {}".format(version_id))

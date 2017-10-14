@@ -22,6 +22,7 @@ class PullRequest:
     def __str__(self):
         pr_info = {
             'branch_name': self.branch_name,
+            'number': self.number,
             'owner': self.owner,
             'repo_name': self.repo_name,
             'sha': self.sha,
@@ -32,6 +33,10 @@ class PullRequest:
     @property
     def branch_name(self):
         return self.data['head']['ref']
+
+    @property
+    def number(self):
+        return self.data['number']
 
     def set_status(self, token, status, context,
                       description):
@@ -69,8 +74,8 @@ class PullRequest:
         return self.data['head']['repo']['name']
 
     def retrieve_source(self, token, bucket_name):
-        source = Source(token, self.owner, self.repo_name, self.sha,
-                        bucket_name)
+        source = Source(token, self.owner, self.repo_name, self.number,
+                        self.sha, bucket_name)
         source.download_archive()
         source.repackage_archive()
         version_id = source.upload_archive()
@@ -88,6 +93,7 @@ class PullRequest:
         return {
                 'title': self.title,
                 'url': self.url,
+                'number': self.number,
                 'head':
                     {
                         'ref': self.branch_name,

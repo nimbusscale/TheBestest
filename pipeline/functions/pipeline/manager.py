@@ -65,14 +65,18 @@ def retrieve_source(event):
     event['version_id'] = s3_version_id
     return event
 
+def build_pipeline(name, template_path):
+    """Builds a pipeline or updates if already exists"""
+    pass
+
 
 def start_pipeline(event, context):
     """Lambda that starts a codepipeline.
 
     Pipeline name is provided by Env Var
     """
-    pipeline_name = os.environ['PIPELINE_NAME']
     token = os.environ['OAUTH_TOKEN']
+    pipeline_name = event['pipeline_name']
     pr = PullRequest(event['pull_request'])
     pipeline = Pipeline({'name': pipeline_name})
     execution_id = pipeline.start()

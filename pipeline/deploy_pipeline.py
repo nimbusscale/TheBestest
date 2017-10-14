@@ -46,10 +46,10 @@ def prep_lambdas():
     subprocess.run(gh_install.split(), check=True)
 
 
-def cfn_deploy(stack_name, template_path, env_name):
+def cfn_deploy(stack_name, template_path):
     cfn = boto3.client('cloudformation')
-    print("## Validate")
-    with open('pipeline_mgr_stack.yaml') as template_file:
+    print("## Validate - {}".format(template_path))
+    with open(template_path) as template_file:
         validation_response = cfn.validate_template(
             TemplateBody=template_file.read())
     print(validation_response)
@@ -64,7 +64,7 @@ def cfn_deploy(stack_name, template_path, env_name):
 
     deploy_file = template_path.replace('.yaml', '_deploy.yaml')
 
-    print("## Package")
+    print("## Package - {}".format(template_path))
     pkg_cmd = ("aws cloudformation package "
                 "--template-file {} "
                 "--s3-bucket thebestest-pipeline "
@@ -72,7 +72,7 @@ def cfn_deploy(stack_name, template_path, env_name):
                ).format(template_path, deploy_file)
     subprocess.run(pkg_cmd.split(), check=True)
 
-    print("## Deploy")
+    print("## Deploy - {}".format(deploy_file))
     deploy_opts = ("--template-file {} "
                    "--stack-name {} "
                    "--capabilities CAPABILITY_IAM"
@@ -82,11 +82,6 @@ def cfn_deploy(stack_name, template_path, env_name):
         deploy_opts = (deploy_opts +
                        " --parameter-overrides OAuthToken={}".format(
                            token))
-
-    if env_name:
-        deploy_opts = (deploy_opts +
-                       " --parameter-overrides EnvName={}".format(
-                           env_name))
 
     deploy_cmd = "aws cloudformation deploy {}".format(deploy_opts)
     try:
@@ -98,6 +93,7 @@ def cfn_deploy(stack_name, template_path, env_name):
             raise
         else:
             print("No new updates for stack {}".format(stack_name))
+
 
 
 def cleanup(template_path):
@@ -164,21 +160,19 @@ if __name__ == '__main__':
     # Ordered list tuples of stacks to deploy. Tuples include stack name,
     # template file path and env name (use None if no pertinent env name)
     stacks = [
-        ('thebestest-pipeline-test', 'pipeline_test_stack.yaml', None),
-        ('thebestest-pipeline-deploy-stage', 'pipeline_deploy_stack.yaml',
-         'stage'),
-        ('thebestest-pipeline-mgr', 'pipeline_mgr_stack.yaml', None)
+        ('thebestest-pipeline-prod', 'pipeline_deploy_stack.yaml'),
+        ('thebestest-pipeline-mgr', 'pipeline_mgr_stack.yaml')
     ]
     args = arg_parse()
     prep_lambdas()
 
-    for stack_name, template_path, env_name in stacks:
-        cfn_deploy(stack_name, template_path, env_name)
+    for stack_name, template_path in stacks:
+        cfn_deploy(stack_name, template_path)
 
     # Cleanup needs to wait till after all stacks deployed otherwise lambda
     # temp folder is removed before it's needed
     print("## Cleanup")
-    for stack_name, template_path, env_name in stacks:
+    for stack_name, template_path in stacks:
         cleanup(template_path)
 
     update_webhook()
