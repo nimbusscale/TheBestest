@@ -17,9 +17,10 @@ def lambda_handler(event, context):
     """
     action = event['pipeline_action']
 
-    if action == 'webhook':
+    if action == 'HandleWebhook':
         return webhook_handler(event)
-
+    elif action == 'RetrieveSource':
+        return retrieve_source(event)
 
 
 def webhook_handler(event):
@@ -53,8 +54,8 @@ def webhook_handler(event):
     return pipeline_info
 
 
-def retrieve_source(event, context):
-    """Lambda that retrieves a zipball of source based on a SHA and uploads
+def retrieve_source(event):
+    """Retrieves a zipball of source based on a SHA and uploads
     it to S3
     """
     token = os.environ['OAUTH_TOKEN']

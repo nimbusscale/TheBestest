@@ -39,20 +39,6 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  RetrieveSource:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline
-      Handler: manager.retrieve_source
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          OAUTH_TOKEN: !Ref OAuthToken
-          S3_BUCKET: !ImportValue TheBestest-PipelineBucket
-
   StartTestPipeline:
     Type: AWS::Lambda::Function
     Properties:
@@ -147,6 +133,7 @@ Resources:
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
+          S3_BUCKET: !ImportValue TheBestest-PipelineBucket
 
   PipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
@@ -179,7 +166,7 @@ Resources:
         	"States": {
         		"SetWebhookAction": {
         			"Type": "Pass",
-        			"Result": "webhook",
+        			"Result": "HandleWebhook",
         			"ResultPath": "$.pipeline_action",
         			"Next": "HandleWebhook"
         		},
@@ -193,13 +180,19 @@ Resources:
         			"Choices": [{
         				"Variable": "$.pipeline_action",
         				"StringEquals": "test",
-        				"Next": "RetrieveTestSource"
+        				"Next": "SetRetrieveSourceAction"
         			}],
         			"Default": "End"
         		},
-        		"RetrieveTestSource": {
+        		"SetRetrieveSourceAction": {
+        			"Type": "Pass",
+        			"Result": "RetrieveSource",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "RetrieveSource"
+        		},
+        		"RetrieveSource": {
         			"Type": "Task",
-        			"Resource": "${RetrieveSource.Arn}",
+        			"Resource": "${PipelineManagerFunction.Arn}",
         			"Next": "StartUnitTest"
         		},
         		"StartUnitTest": {
