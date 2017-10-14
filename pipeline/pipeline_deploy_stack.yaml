@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: A Pipeline to deploy TheBestest App to an environment
+Parameters:
+  S3SourceKey:
+    Type: String
+    Default: source/thebestest-master.zip
 Resources:
   PipelineRole:
     Type: AWS::IAM::Role
@@ -52,6 +56,7 @@ Resources:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
                 Resource:
+                  - !GetAtt TheBestestUnitTest.Arn
                   - !GetAtt TheBestestBuild.Arn
 
   CloudformationRole:
@@ -159,6 +164,21 @@ Resources:
                   -  arn:aws:s3:::${PipelineBucket}
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
 
+  TheBestestUnitTest:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-unittest
+      ServiceRole: !GetAtt BuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec-unittest.yaml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
+      Artifacts:
+        Type: CODEPIPELINE
+
   TheBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -194,9 +214,21 @@ Resources:
                 Version: 1
               Configuration:
                 S3Bucket: !ImportValue TheBestest-PipelineBucket
-                S3ObjectKey: thebestest-source.zip
+                S3ObjectKey: !Ref S3SourceKey
                 PollForSourceChanges: false
               OutputArtifacts:
+                - Name: thebestest-source
+        - Name: UnitTest
+          Actions:
+            - Name: UnitTest
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref TheBestestUnitTest
+              InputArtifacts:
                 - Name: thebestest-source
         - Name: Package
           Actions:
