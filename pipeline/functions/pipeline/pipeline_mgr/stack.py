@@ -1,5 +1,4 @@
 import logging
-import time
 
 import boto3
 from botocore.exceptions import ClientError, WaiterError
@@ -27,6 +26,9 @@ class Stack:
     def create(self, template_path):
         # Check if stack already exists, if rolled back, then delete stack,
         # Otherwise skip creation
+        if self.status == 'ROLLBACK_COMPLETE':
+            self.delete()
+
         with open(template_path) as template_file:
             template = template_file.read()
             logger.info("Validating CFN template {}".format(template_path))
@@ -37,8 +39,8 @@ class Stack:
                 TemplateBody=template,
                 Capabilities=['CAPABILITY_IAM']
             )
-        stack_id = response['StackId']
-        logger.info("StackId {}".format(stack_id))
+        arn = response['StackId']
+        logger.info("StackId {}".format(arn))
         create_waiter = self.cfn.get_waiter('stack_create_complete')
         waiter_delay = 10
         waiter_max_attempts = 18
@@ -46,12 +48,12 @@ class Stack:
             str(waiter_delay * waiter_max_attempts)
         ))
         try:
-            create_waiter.wait(StackName=stack_id,
-                        WaiterConfig={
-                            'Delay': waiter_delay,
-                            'MaxAttempts': waiter_max_attempts
-                            }
-                        )
+            create_waiter.wait(StackName=arn,
+                               WaiterConfig={
+                                    'Delay': waiter_delay,
+                                    'MaxAttempts': waiter_max_attempts
+                                    }
+                               )
         except WaiterError:
             events_response = self.cfn.describe_stack_events(
                 StackName=self.name)
@@ -63,7 +65,21 @@ class Stack:
                     self.status))
 
     def delete(self):
-        self.cfn.delete_stack(StackName=self.arn)
+        arn = self.arn
+        logger.info("Deleting stack with ARN {}".format(arn))
+        delete_waiter = self.cfn.get_waiter('stack_delete_complete')
+        waiter_delay = 10
+        waiter_max_attempts = 6
+        logger.info("Waiting up to {} seconds for stack deletion.".format(
+            str(waiter_delay * waiter_max_attempts)
+        ))
+        self.cfn.delete_stack(StackName=arn)
+        delete_waiter.wait(StackName=arn,
+                           WaiterConfig={
+                               'Delay': waiter_delay,
+                               'MaxAttempts': waiter_max_attempts
+                            }
+                           )
 
     @property
     def status(self):
@@ -75,5 +91,3 @@ class Stack:
             else:
                 raise
         return response['Stacks'][0]['StackStatus']
-
-

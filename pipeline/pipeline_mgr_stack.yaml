@@ -22,9 +22,17 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - s3:Get*
                   - s3:PutObject
                 Resource: !Sub
                   -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
@@ -36,6 +44,10 @@ Resources:
                   - codepipeline:GetPipelineState
                   - codepipeline:StartPipelineExecution
                   - codepipeline:GetPipelineExecution
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
                 Resource: "*"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
@@ -131,6 +143,7 @@ Resources:
       Handler: manager.lambda_handler
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
+      Timeout: 250
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
@@ -192,6 +205,23 @@ Resources:
         			"Next": "RetrieveSource"
         		},
         		"RetrieveSource": {
+        			"Type": "Task",
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "SetPipelineName"
+        		},
+        		"SetPipelineName": {
+        			"Type": "Pass",
+        			"Result": "thebestest-pipeline-test-",
+        			"ResultPath": "$.pipeline_name",
+        			"Next": "SetBuildPipelineAction"
+        		},
+        		"SetBuildPipelineAction": {
+        			"Type": "Pass",
+        			"Result": "BuildPipeline",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "BuildPipeline"
+        		},
+        		"BuildPipeline": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
         			"Next": "End"

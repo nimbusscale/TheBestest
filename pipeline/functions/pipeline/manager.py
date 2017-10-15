@@ -6,6 +6,8 @@ import boto3
 
 from pipeline_mgr.pull_request import PullRequest
 from pipeline_mgr.pipeline import Pipeline
+from pipeline_mgr.stack import Stack
+from pipeline_mgr.source import Source
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -21,6 +23,13 @@ def lambda_handler(event, context):
         return webhook_handler(event)
     elif action == 'RetrieveSource':
         return retrieve_source(event)
+    elif action == 'BuildPipeline':
+        pr_id = str(event['pull_request']['number'])
+        name = event['pipeline_name'] + pr_id
+        # Set from project root
+        template_path = 'pipeline/pipeline_deploy_stack.yaml'
+
+        build_pipeline(name, pr_id, template_path)
 
 
 def webhook_handler(event):
@@ -65,9 +74,22 @@ def retrieve_source(event):
     event['version_id'] = s3_version_id
     return event
 
-def build_pipeline(name, template_path):
-    """Builds a pipeline or updates if already exists"""
-    pass
+
+def build_pipeline(name, src_id, template_path):
+    """Builds a pipeline with a test and deploy stack"""
+    bucket = os.environ['S3_BUCKET']
+    stack = Stack(name)
+    if stack.status == 'ROLLBACK_COMPLETE':
+        stack.delete()
+    if not stack.arn:
+        logger.info("CFN stack {} does not exist.".format(name))
+        source = Source(None, None, None, src_id, None, bucket)
+        source.download_from_s3()
+        source.unzip()
+        unzipdir = source.unzip_dir
+        stack.create(unzipdir + template_path)
+    else:
+        logger.info("CFN stack {} already exists".format(name))
 
 
 def start_pipeline(event, context):
