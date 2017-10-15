@@ -7,6 +7,7 @@ import github3
 
 logger = logging.getLogger()
 
+
 class Source:
 
     def __init__(self, token, repo_owner, repo_name, id, sha,
