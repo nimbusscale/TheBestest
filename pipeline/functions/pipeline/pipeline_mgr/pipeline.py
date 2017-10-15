@@ -10,8 +10,8 @@ class Pipeline:
 
     def __init__(self, pipeline_def):
         if type(pipeline_def) == dict:
-            self.name = pipeline_def.get('name', None)
-            self.execution_id = pipeline_def.get('execution_id', None)
+            self._name = pipeline_def.get('name', None)
+            self._execution_id = pipeline_def.get('execution_id', None)
         else:
             raise TypeError(
                 "pipeline_def is a {} not a dict.".format(type(pipeline_def))
@@ -21,7 +21,7 @@ class Pipeline:
         return (
            str({'name': self.name,
                 'execution_id': self.execution_id,
-                'status': self.staus})
+                'status': self.status})
         )
 
     @property
@@ -43,7 +43,7 @@ class Pipeline:
     def to_dict(self):
         return {'name': self.name,
                 'execution_id': self.execution_id,
-                'status': self.staus}
+                'status': self.status}
 
     def start(self):
         codepipeline = boto3.client('codepipeline')
@@ -52,7 +52,7 @@ class Pipeline:
         return self.execution_id
 
     @property
-    def staus(self):
+    def status(self):
         if self.execution_id:
             codepipeline = boto3.client('codepipeline')
             status_response = codepipeline.get_pipeline_execution(
