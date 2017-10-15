@@ -10,21 +10,24 @@ logger = logging.getLogger()
 
 class Source:
 
-    def __init__(self, token, repo_owner, repo_name, pr_number, sha,
+    def __init__(self, token, repo_owner, repo_name, id, sha,
                  bucket_name):
         self.token = token
         self.repo_owner = repo_owner
         self.repo_name = repo_name
-        self.number = str(pr_number)
+        self.id = str(id)
         self.sha = sha
         self.bucket_name = bucket_name
 
+        self.work_path = '/tmp'
+        self._unzip_dir = None
+
         self.download_path = '/tmp/' + self.sha + '.zip'
-        self.zipball_name = 'thebestest' + self.number + '.zip'
+        self.zipball_name = 'thebestest-' + self.id + '.zip'
         self.s3_path = 'source/' + self.zipball_name
         self.zipball_path = '/tmp/' + self.zipball_name
 
-    def download_archive(self):
+    def download_from_github(self):
         gh = github3.login(token=self.token)
         repo = gh.repository(self.repo_owner, self.repo_name)
         logger.info("Downloading zipball to {}".format(self.download_path))
@@ -36,20 +39,42 @@ class Source:
         """
         logger.info("Repackaging {} to {}".format(
             self.download_path, self.zipball_path))
-        work_path = '/tmp'
+        self.unzip()
+        self.zip()
+
+    def unzip(self):
+        logger.info("unzipping {}".format(self.download_path))
         with ZipFile(self.download_path) as src_zip:
             zip_info = src_zip.infolist()
-            unzip_dir = work_path + '/' + zip_info[0].filename
-            src_zip.extractall(path=work_path)
+            unzip_dir = self.work_path + '/' + zip_info[0].filename
+            src_zip.extractall(path=self.work_path)
+            self.unzip_dir = unzip_dir
+
+    @property
+    def unzip_dir(self):
+        return self._unzip_dir
+
+    @unzip_dir.setter
+    def unzip_dir(self, path):
+        if os.path.isdir(path):
+            self._unzip_dir = path
+        else:
+            raise ValueError(
+                "{} is not a path to a directory that exists.".format(path)
+            )
+
+    def zip(self):
+        logger.info("zipping {} into {}".format(self.unzip_dir,
+                                                self.zipball_path))
         with ZipFile(self.zipball_path, mode='w',
                      compression=ZIP_DEFLATED) as dest_zip:
-            for root, dirs, files in os.walk(unzip_dir):
+            for root, dirs, files in os.walk(self.unzip_dir):
                 for file in files:
                     src_path = os.path.join(root, file)
-                    arc_path = src_path.replace(unzip_dir, '')
+                    arc_path = src_path.replace(self.unzip_dir, '')
                     dest_zip.write(src_path, arcname=arc_path)
 
-    def upload_archive(self):
+    def upload_to_s3(self):
         s3 = boto3.client('s3')
         logger.info("Uploading {} to s3://{}/{}".format(
             self.zipball_path, self.bucket_name, self.s3_path))

@@ -76,9 +76,9 @@ class PullRequest:
     def retrieve_source(self, token, bucket_name):
         source = Source(token, self.owner, self.repo_name, self.number,
                         self.sha, bucket_name)
-        source.download_archive()
+        source.download_from_github()
         source.repackage_archive()
-        version_id = source.upload_archive()
+        version_id = source.upload_to_s3()
         return version_id
 
     @property
