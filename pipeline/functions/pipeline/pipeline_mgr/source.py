@@ -43,10 +43,11 @@ class Source:
         self.zip()
 
     def unzip(self):
-        logger.info("unzipping {}".format(self.download_path))
         with ZipFile(self.download_path) as src_zip:
             zip_info = src_zip.infolist()
             unzip_dir = self.work_path + '/' + zip_info[0].filename
+            logger.info("unzipping {} to {}".format(self.download_path,
+                                                    unzip_dir))
             src_zip.extractall(path=self.work_path)
             self.unzip_dir = unzip_dir
 
@@ -89,4 +90,10 @@ class Source:
         logger.info("Removing {}".format(self.zipball_path))
         os.remove(self.zipball_path)
         return version_id
+
+    def download_from_s3(self):
+        s3 = boto3.client('s3')
+        logger.info("Downloading s3://{}/{} to {}".format(
+            self.bucket_name, self.s3_path, self.zipball_path))
+
 
