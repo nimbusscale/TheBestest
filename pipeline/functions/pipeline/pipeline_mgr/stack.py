@@ -63,6 +63,7 @@ class Stack:
             raise RuntimeError(
                 "Stack failed to create with status {}".format(
                     self.status))
+        logger.info("Stack {} created".format(self.name))
 
     def delete(self):
         arn = self.arn
