@@ -4,6 +4,7 @@ import os
 
 import boto3
 
+from pipeline_mgr.manager import Manager
 from pipeline_mgr.pull_request import PullRequest
 from pipeline_mgr.pipeline import Pipeline
 from pipeline_mgr.stack import Stack
@@ -38,11 +39,10 @@ def webhook_handler(event):
     """
     pipeline_info = {}
     try:
-        pr_data = event['pull_request']
-        pull_request = PullRequest(pr_data)
+        manager = Manager({'pull_request': event['pull_request']})
     except:
         logger.error(event)
-        raise Exception("Invalid Github PR Webhook")
+        raise ValueError("Invalid Github PR Webhook")
     pipeline_info['pull_request'] = pull_request.to_dict()
     pipeline_action = "none"
     if event['action'] == 'opened':

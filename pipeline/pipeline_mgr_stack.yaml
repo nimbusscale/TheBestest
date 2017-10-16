@@ -159,7 +159,7 @@ Resources:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
       Code: functions_deploy/pipeline
-      Handler: manager.lambda_handler
+      Handler: pipeline_mgr_lambdas.lambda_handler
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
       Timeout: 250
