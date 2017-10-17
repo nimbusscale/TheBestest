@@ -2,27 +2,44 @@ import json
 import logging
 
 import boto3
+from pipeline_mgr.stack import Stack
 
 logger = logging.getLogger()
 
 
 class Pipeline:
 
-    def __init__(self, pipeline_def):
-        if type(pipeline_def) == dict:
-            self._name = pipeline_def.get('name', None)
-            self._execution_id = pipeline_def.get('execution_id', None)
+    def __init__(self, spec):
+        if type(spec) == dict:
+            self._name = spec.get('name')
+            self._execution_id = spec.get('execution_id')
         else:
             raise TypeError(
-                "pipeline_def is a {} not a dict.".format(type(pipeline_def))
+                "spec is a {} not a dict.".format(type(spec))
             )
 
     def __repr__(self):
-        return (
-           str({'name': self.name,
-                'execution_id': self.execution_id,
-                'status': self.status})
+        return ("Pipeline(" +
+                str({'name': self.name,
+                    'execution_id': self.execution_id,
+                     'status': self.status})
+                + ")"
+
         )
+
+    def build(self, source, bucket_name, template_path):
+        """Builds a pipeline with a test and deploy stack"""
+        stack = Stack(self.name)
+        if stack.status == 'ROLLBACK_COMPLETE':
+            stack.delete()
+        if not stack.arn:
+            logger.info("CFN stack {} does not exist.".format(self.name))
+            source.download_from_s3()
+            source.unzip()
+            unzipdir = source.unzip_dir
+            stack.create(unzipdir + template_path)
+        else:
+            logger.info("CFN stack {} already exists".format(self.name))
 
     @property
     def execution_id(self):

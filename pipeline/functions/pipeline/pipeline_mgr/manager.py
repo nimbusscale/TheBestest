@@ -110,7 +110,6 @@ class Manager:
         else:
             raise TypeError("source must be a Source object")
 
-
     @property
     def oath_token(self):
         return self._oath_token

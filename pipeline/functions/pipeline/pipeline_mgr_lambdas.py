@@ -23,44 +23,50 @@ def lambda_handler(event, context):
     if action == 'HandleWebhook':
         return webhook_handler(event)
     elif action == 'RetrieveSource':
-        return retrieve_source(event)
+        manager = Manager(event['manager'])
+        manager.source.retrieve_source()
+        event['manager'] = manager.to_dict()
+        return event
     elif action == 'BuildPipeline':
-        pr_id = str(event['pull_request']['number'])
-        name = event['pipeline_name'] + pr_id
+        manager = Manager(event['manager'])
         # Set from project root
         template_path = 'pipeline/pipeline_deploy_stack.yaml'
-
-        build_pipeline(name, pr_id, template_path)
+        manager.pipeline.build(manager.source,
+                               manager.bucket_name,
+                               template_path)
 
 
 def webhook_handler(event):
     """Evaluates the input provided by the API GW and determines
     if it's a valid PR Open Webhook notice.
     """
-    pipeline_info = {}
-    try:
-        manager = Manager({'pull_request': event['pull_request']})
-    except:
-        logger.error(event)
-        raise ValueError("Invalid Github PR Webhook")
-    pipeline_info['pull_request'] = pull_request.to_dict()
-    pipeline_action = "none"
-    if event['action'] == 'opened':
-        pipeline_action = 'build_stack'
-    elif event['action'] == 'synchronize':
-        pipeline_action = 'test'
-    elif event['action'] == 'closed' and event['pull_request']['merged']:
-        pipeline_action = 'prod_deploy'
-    elif event['action'] == 'closed' and not event['pull_request']['merged']:
-        pipeline_action = 'delete_stack'
-    pipeline_info['pipeline_action'] = pipeline_action
-    logger.info(
-        "{} for PR {} ({}) of branch {}".format(pipeline_action,
-                                                pull_request.title,
-                                                pull_request.url,
-                                                pull_request.branch_name)
+    state = {}
+    bucket_name = os.environ['S3_BUCKET']
+    oath_token = os.environ['OAUTH_TOKEN']
+    manager = Manager(
+        {
+            'bucket_name': bucket_name,
+            'pull_request': event['pull_request'],
+            'oath_token': oath_token
+        }
     )
-    return pipeline_info
+
+    if event['action'] == 'opened':
+        state['pipeline_action'] = 'build_stack'
+    elif event['action'] == 'synchronize':
+        state['pipeline_action'] = 'test'
+    elif event['action'] == 'closed' and event['pull_request']['merged']:
+        state['pipeline_action'] = 'prod_deploy'
+    elif event['action'] == 'closed' and not event['pull_request']['merged']:
+        state['pipeline_action'] = 'delete_stack'
+    logger.info(
+        "{} for PR {} ({}) of branch {}".format(state['pipeline_action'],
+                                                manager.pull_request.title,
+                                                manager.pull_request.url,
+                                                manager.pull_request.branch_name)
+    )
+    state['manager'] = manager.to_dict()
+    return state
 
 
 def retrieve_source(event):

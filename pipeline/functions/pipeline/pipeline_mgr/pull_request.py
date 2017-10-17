@@ -1,23 +1,22 @@
 import logging
 
 import github3
-from pipeline_mgr.source import Source
 
 logger = logging.getLogger()
 
 
 class PullRequest:
 
-    def __init__(self, pr_data):
-        if type(pr_data) == dict:
-            self.data = pr_data
+    def __init__(self, spec):
+        if type(spec) == dict:
+            self._data = spec
         else:
             raise TypeError(
-                "pr_data is a {} not a dict.".format(type(pr_data))
+                "spec is a {} not a dict.".format(type(spec))
             )
 
     def __repr__(self):
-        return str(self.to_dict())
+        return "PullRequest(" + str(self.to_dict()) + ")"
 
     def __str__(self):
         pr_info = {
@@ -32,11 +31,11 @@ class PullRequest:
 
     @property
     def branch_name(self):
-        return self.data['head']['ref']
+        return self._data['head']['ref']
 
     @property
     def number(self):
-        return self.data['number']
+        return self._data['number']
 
     def set_status(self, token, status, context,
                       description):
@@ -67,27 +66,19 @@ class PullRequest:
 
     @property
     def owner(self):
-        return self.data['head']['repo']['owner']['login']
+        return self._data['head']['repo']['owner']['login']
 
     @property
     def repo_name(self):
-        return self.data['head']['repo']['name']
-
-    def retrieve_source(self, token, bucket_name):
-        source = Source(token, self.owner, self.repo_name, self.number,
-                        self.sha, bucket_name)
-        source.download_from_github()
-        source.repackage_archive()
-        version_id = source.upload_to_s3()
-        return version_id
+        return self._data['head']['repo']['name']
 
     @property
     def sha(self):
-        return self.data['head']['sha']
+        return self._data['head']['sha']
 
     @property
     def title(self):
-        return self.data['title']
+        return self._data['title']
 
     def to_dict(self):
         return {
@@ -111,7 +102,7 @@ class PullRequest:
 
     @property
     def url(self):
-        return self.data['url']
+        return self._data['url']
 
 
 
