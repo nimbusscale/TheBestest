@@ -23,7 +23,7 @@ class Stack:
                 raise
         return response['Stacks'][0]['StackId']
 
-    def create(self, template_path):
+    def create(self, template_path, parameters=None):
         # Check if stack already exists, if rolled back, then delete stack,
         # Otherwise skip creation
         if self.status == 'ROLLBACK_COMPLETE':
@@ -34,11 +34,20 @@ class Stack:
             logger.info("Validating CFN template {}".format(template_path))
             self.cfn.validate_template(TemplateBody=template)
             logger.info("Creating stack {}".format(self.name))
+            if parameters:
+                cfn_params = [
+                    {'ParameterKey': key,
+                     'ParameterValue': parameters[key]}
+                    for key in parameters]
+            else:
+                cfn_params = []
             response = self.cfn.create_stack(
                 StackName=self.name,
                 TemplateBody=template,
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
+                Parameters=cfn_params
             )
+
         arn = response['StackId']
         logger.info("StackId {}".format(arn))
         create_waiter = self.cfn.get_waiter('stack_create_complete')

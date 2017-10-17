@@ -27,7 +27,7 @@ class Pipeline:
 
         )
 
-    def build(self, source, bucket_name, template_path):
+    def build(self, source, template_path):
         """Builds a pipeline with a test and deploy stack"""
         stack = Stack(self.name)
         if stack.status == 'ROLLBACK_COMPLETE':
@@ -37,7 +37,8 @@ class Pipeline:
             source.download_from_s3()
             source.unzip()
             unzipdir = source.unzip_dir
-            stack.create(unzipdir + template_path)
+            stack.create(unzipdir + template_path,
+                         parameters={'S3SourceKey': source.s3_path})
         else:
             logger.info("CFN stack {} already exists".format(self.name))
 

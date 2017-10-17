@@ -71,12 +71,17 @@ class Source:
         self.repackage_archive()
         self.upload_to_s3()
 
+    @property
+    def s3_path(self):
+        return self._s3_path
+
     def to_dict(self):
         return {
                     'bucket_name': self._bucket_name,
                     'id': self._id,
                     'repo_owner': self._repo_owner,
                     'repo_name': self._repo_name,
+                    's3_path': self._s3_path,
                     'sha': self._sha,
                     'token': self._token
                 }

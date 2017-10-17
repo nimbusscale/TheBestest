@@ -32,7 +32,6 @@ def lambda_handler(event, context):
         # Set from project root
         template_path = 'pipeline/pipeline_deploy_stack.yaml'
         manager.pipeline.build(manager.source,
-                               manager.bucket_name,
                                template_path)
 
 
