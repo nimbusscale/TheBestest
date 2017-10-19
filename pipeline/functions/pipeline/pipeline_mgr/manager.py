@@ -23,8 +23,8 @@ class Manager:
             # objects ,otherwise build objects based on provided params
             if spec.get('pipeline'):
                 self._pipeline = (
-                    spec['pipeline'] if type(spec['pipeline']) 
-                                            is Pipeline 
+                    spec['pipeline'] if type(spec['pipeline'])
+                                        is Pipeline
                     else Pipeline(spec['pipeline'])
                 )
             else:

@@ -90,10 +90,10 @@ def cfn_deploy(stack_name, template_path):
         # If error encountered see if it is because the template hasn't changed
         # if so, then ignore error
         if "didn't contain changes" not in str(e.stderr):
+            print(e.stderr)
             raise
         else:
             print("No new updates for stack {}".format(stack_name))
-
 
 
 def cleanup(template_path):

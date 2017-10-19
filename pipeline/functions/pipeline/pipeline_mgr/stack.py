@@ -33,7 +33,6 @@ class Stack:
             template = template_file.read()
             logger.info("Validating CFN template {}".format(template_path))
             self.cfn.validate_template(TemplateBody=template)
-            logger.info("Creating stack {}".format(self.name))
             if parameters:
                 cfn_params = [
                     {'ParameterKey': key,
@@ -41,6 +40,13 @@ class Stack:
                     for key in parameters]
             else:
                 cfn_params = []
+            logger.info(
+                "Creating CFN stack {} from {} with Params {}".format(
+                    self.name,
+                    template_path,
+                    cfn_params
+                )
+            )
             response = self.cfn.create_stack(
                 StackName=self.name,
                 TemplateBody=template,

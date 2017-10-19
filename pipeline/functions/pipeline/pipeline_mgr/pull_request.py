@@ -37,8 +37,7 @@ class PullRequest:
     def number(self):
         return self._data['number']
 
-    def set_status(self, token, status, context,
-                      description):
+    def set_status(self, token, status, context, description):
         valid_status = ['pending', 'success', 'failure', 'error']
         if status not in valid_status:
             raise TypeError(

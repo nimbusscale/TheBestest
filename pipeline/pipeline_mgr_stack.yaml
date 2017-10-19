@@ -226,9 +226,9 @@ Resources:
         		"RetrieveSource": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
-        			"Next": "SetPipelineName"
+        			"Next": "SetTestPipelineName"
         		},
-        		"SetPipelineName": {
+        		"SetTestPipelineName": {
         			"Type": "Pass",
         			"Result": "thebestest-pipeline-test-",
         			"ResultPath": "$.pipeline_name",
@@ -241,6 +241,53 @@ Resources:
         			"Next": "BuildPipeline"
         		},
         		"BuildPipeline": {
+        			"Type": "Task",
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "SetStartUnitTestAction"
+        		},
+        		"SetStartUnitTestAction": {
+        			"Type": "Pass",
+        			"Result": "StartUnitTest",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "StartUnitTest"
+        		},
+        		"StartUnitTest": {
+        			"Type": "Task",
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "SetCheckUnitTestStatusAction"
+        		},
+        		"SetCheckUnitTestStatusAction": {
+        			"Type": "Pass",
+        			"Result": "CheckUnitTestStatus",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "CheckUnitTestStatus"
+        		},
+        		"CheckUnitTestStatus": {
+        			"Type": "Task",
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "UnitTestStatus"
+        		},
+        		"UnitTestStatus": {
+        			"Type": "Choice",
+        			"Choices": [{
+        				"Variable": "$.manager.pipeline.status",
+        				"StringEquals": "InProgress",
+        				"Next": "UnitTestStatusWait"
+        			}],
+        			"Default": "SetUnitTestStatusAction"
+        		},
+        		"UnitTestStatusWait": {
+        			"Type": "Wait",
+        			"Seconds": 15,
+        			"Next": "CheckUnitTestStatus"
+        		},
+        		"SetUnitTestStatusAction": {
+        			"Type": "Pass",
+        			"Result": "SetUnitTestStatus",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "SetUnitTestStatus"
+        		},
+        		"SetUnitTestStatus": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
         			"Next": "End"

@@ -33,6 +33,34 @@ def lambda_handler(event, context):
         template_path = 'pipeline/pipeline_deploy_stack.yaml'
         manager.pipeline.build(manager.source,
                                template_path)
+        event['manager'] = manager.to_dict()
+        return event
+    elif action == 'StartUnitTest':
+        manager = Manager(event['manager'])
+        execution_id = manager.pipeline.start()
+        manager.pull_request.set_status(manager.oath_token,
+                                        'pending',
+                                        manager.pipeline.name,
+                                        execution_id)
+        event['manager'] = manager.to_dict()
+        return event
+    elif action == 'CheckUnitTestStatus':
+        # Simply rehydrating the manager object will update the pipeline status
+        manager = Manager(event['manager'])
+        event['manager'] = manager.to_dict()
+        return event
+    elif action == 'SetUnitTestStatus':
+        manager = Manager(event['manager'])
+        if manager.pipeline.status == 'Succeeded':
+            pr_status = 'success'
+        elif manager.pipeline.status == 'Failed':
+            pr_status = 'failure'
+        else:
+            pr_status = 'error'
+        manager.pull_request.set_status(manager.oath_token,
+                                        pr_status,
+                                        manager.pipeline.name,
+                                        manager.pipeline.execution_id)
 
 
 def webhook_handler(event):
