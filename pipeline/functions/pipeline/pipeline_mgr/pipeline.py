@@ -13,6 +13,13 @@ class Pipeline:
         if type(spec) == dict:
             self._name = spec.get('name')
             self._execution_id = spec.get('execution_id')
+            if spec.get('stack'):
+                self._stack = (
+                    spec['stack'] if type(spec['stack']) is Stack
+                    else Stack(spec['stack'])
+                )
+            else:
+                self._stack = Stack({'name': self.name})
         else:
             raise TypeError(
                 "spec is a {} not a dict.".format(type(spec))
@@ -29,16 +36,15 @@ class Pipeline:
 
     def build(self, source, template_path):
         """Builds a pipeline with a test and deploy stack"""
-        stack = Stack(self.name)
-        if stack.status == 'ROLLBACK_COMPLETE':
-            stack.delete()
-        if not stack.arn:
+        if sef.stack.status == 'ROLLBACK_COMPLETE':
+            self.stack.delete()
+        if not self.stack.arn:
             logger.info("CFN stack {} does not exist.".format(self.name))
             source.download_from_s3()
             source.unzip()
             unzipdir = source.unzip_dir
-            stack.create(unzipdir + template_path,
-                         parameters={'S3SourceKey': source.s3_path})
+            self.stack.create(unzipdir + template_path,
+                              parameters={'S3SourceKey': source.s3_path})
         else:
             logger.info("CFN stack {} already exists".format(self.name))
 
@@ -68,6 +74,17 @@ class Pipeline:
         response = codepipeline.start_pipeline_execution(name=self.name)
         self.execution_id = response['pipelineExecutionId']
         return self.execution_id
+
+    @property
+    def stack(self):
+        return self._stack
+
+    @stack.setter
+    def stack(self, stack_obj):
+        if type(stack_obj) is Stack:
+            self._stack = stack_obj
+        else:
+            raise TypeError("stack must be Stack object")
 
     @property
     def status(self):

@@ -8,20 +8,33 @@ logger = logging.getLogger()
 
 class Stack:
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, spec):
+        self._name = spec.get('name')
+        self._arn =  spec.get('arn')
         self.cfn = boto3.client('cloudformation')
+
+    def __repr__(self):
+        return "Stack(" + str(self.to_dict()) + ")"
+
+    def __str__(self):
+        return str(self.to_dict())
 
     @property
     def arn(self):
-        try:
-            response = self.cfn.describe_stacks(StackName=self.name)
-        except ClientError as e:
-            if "does not exist" in e.response['Error']['Message']:
-                return None
-            else:
-                raise
-        return response['Stacks'][0]['StackId']
+        if not self._arn:
+            try:
+                response = self.cfn.describe_stacks(StackName=self.name)
+            except ClientError as e:
+                if "does not exist" in e.response['Error']['Message']:
+                    return None
+                else:
+                    raise
+            self._arn = response['Stacks'][0]['StackId']
+        return self._arn
+
+    @arn.setter
+    def arn(self, arn):
+        self._arn = arn
 
     def create(self, template_path, parameters=None):
         # Check if stack already exists, if rolled back, then delete stack,
@@ -98,6 +111,14 @@ class Stack:
                            )
 
     @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    @property
     def status(self):
         try:
             response = self.cfn.describe_stacks(StackName=self.name)
@@ -107,3 +128,11 @@ class Stack:
             else:
                 raise
         return response['Stacks'][0]['StackStatus']
+
+    def to_dict(self):
+        return {
+                'arn': self.arn,
+                'name': self.name,
+                'status': self.status
+        }
+
