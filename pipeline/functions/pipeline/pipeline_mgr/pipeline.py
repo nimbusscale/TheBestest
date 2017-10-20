@@ -39,14 +39,17 @@ class Pipeline:
 
     def build(self, source, template_path):
         """Builds a pipeline with a test and deploy stack"""
-        source.download_from_s3()
-        source.unzip()
-        unzipdir = source.unzip_dir
-        self.stack.apply_template(
-            unzipdir + template_path,
-            parameters={'S3SourceKey': source.s3_path}
-        )
-
+        if sef.stack.status == 'ROLLBACK_COMPLETE':
+            self.stack.delete()
+        if not self.stack.arn:
+            logger.info("CFN stack {} does not exist.".format(self.name))
+            source.download_from_s3()
+            source.unzip()
+            unzipdir = source.unzip_dir
+            self.stack.create(unzipdir + template_path,
+                              parameters={'S3SourceKey': source.s3_path})
+        else:
+            logger.info("CFN stack {} already exists".format(self.name))
 
     @property
     def execution_id(self):
