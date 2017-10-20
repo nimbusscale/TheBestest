@@ -73,7 +73,9 @@ class Stack:
         if self.hexdigest is None:
             self.create(template, cfn_params)
         elif hexdigest != self.hexdigest:
-            self.update(template,cfn_params)
+            self.update(template, cfn_params)
+        else:
+            logger.info("Stack {} does not need to be updated.")
 
     @property
     def arn(self):

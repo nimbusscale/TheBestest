@@ -30,7 +30,11 @@ class Manager:
             else:
                 pipeline_spec = {
                     'name': ("thebestest-pipeline-test-"
-                             + str(self.pull_request.number))
+                             + str(self.pull_request.number)),
+                    'stack': {
+                        'name': ('thebestest-test-'
+                                 + str(self.pull_request.number))
+                    }
                 }
                 self._pipeline = Pipeline(pipeline_spec)
 

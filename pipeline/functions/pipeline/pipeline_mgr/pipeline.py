@@ -27,9 +27,12 @@ class Pipeline:
 
     def __repr__(self):
         return ("Pipeline(" +
-                str({'name': self.name,
+                str({
+                    'name': self.name,
                     'execution_id': self.execution_id,
-                     'status': self.status})
+                    'status': self.status,
+                    'stack': self.stack
+                     })
                 + ")"
 
         )
@@ -62,9 +65,12 @@ class Pipeline:
         self._name = pipeline_name
 
     def to_dict(self):
-        return {'name': self.name,
+        return {
+                'name': self.name,
                 'execution_id': self.execution_id,
-                'status': self.status}
+                'status': self.status,
+                'stack': self.stack.to_dict()
+        }
 
     def start(self):
         codepipeline = boto3.client('codepipeline')
