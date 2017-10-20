@@ -45,7 +45,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - cloudformation:*
-                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest-pipeline-test-*/*
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest-*/*
               - Effect: Allow
                 Action:
                   - codepipeline:*
@@ -70,88 +70,6 @@ Resources:
                 Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/thebestest-pipeline-test-*
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-
-#  StartTestPipeline:
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      # functions_deploy is a temp location created by the
-#      # deploy_pipeline.infra.sh script
-#      Code: functions_deploy/pipeline
-#      Handler: manager.start_pipeline
-#      Role: !GetAtt PipelineMgrLambdaRole.Arn
-#      Runtime: python3.6
-#      Environment:
-#        Variables:
-#          OAUTH_TOKEN: !Ref OAuthToken
-#          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
-#
-#  CheckTestPipelineStatus:
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      # functions_deploy is a temp location created by the
-#      # deploy_pipeline.infra.sh script
-#      Code: functions_deploy/pipeline
-#      Handler: manager.check_pipeline_status
-#      Role: !GetAtt PipelineMgrLambdaRole.Arn
-#      Runtime: python3.6
-#      Environment:
-#        Variables:
-#          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
-#
-#  SetTestStatus:
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      # functions_deploy is a temp location created by the
-#      # deploy_pipeline.infra.sh script
-#      Code: functions_deploy/pipeline
-#      Handler: manager.set_github_status
-#      Role: !GetAtt PipelineMgrLambdaRole.Arn
-#      Runtime: python3.6
-#      Environment:
-#        Variables:
-#          OAUTH_TOKEN: !Ref OAuthToken
-#          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
-#
-#  StartStageDeployPipeline:
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      # functions_deploy is a temp location created by the
-#      # deploy_pipeline.infra.sh script
-#      Code: functions_deploy/pipeline
-#      Handler: manager.start_pipeline
-#      Role: !GetAtt PipelineMgrLambdaRole.Arn
-#      Runtime: python3.6
-#      Environment:
-#        Variables:
-#          OAUTH_TOKEN: !Ref OAuthToken
-#          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
-#
-#  CheckStageDeployStatus:
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      # functions_deploy is a temp location created by the
-#      # deploy_pipeline.infra.sh script
-#      Code: functions_deploy/pipeline
-#      Handler: manager.check_pipeline_status
-#      Role: !GetAtt PipelineMgrLambdaRole.Arn
-#      Runtime: python3.6
-#      Environment:
-#        Variables:
-#          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
-#
-#  SetStageDeployStatus:
-#    Type: AWS::Lambda::Function
-#    Properties:
-#      # functions_deploy is a temp location created by the
-#      # deploy_pipeline.infra.sh script
-#      Code: functions_deploy/pipeline
-#      Handler: manager.set_github_status
-#      Role: !GetAtt PipelineMgrLambdaRole.Arn
-#      Runtime: python3.6
-#      Environment:
-#        Variables:
-#          OAUTH_TOKEN: !Ref OAuthToken
-#          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
 
   PipelineManagerFunction:
     Type: AWS::Lambda::Function
