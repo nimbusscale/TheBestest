@@ -42,6 +42,7 @@ Resources:
                 Action:
                   - cloudformation:*
                 Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest-pipeline-test-*/*
+              - Effect: Allow
                 Action:
                   - iam:PassRole
                 Resource: !GetAtt CloudformationRole.Arn
@@ -102,8 +103,8 @@ Resources:
                 Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/thebestest*LambdaRole*
               - Effect: Allow
                 Action:
-                  - cloudformation:*
-                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest-pipeline-test-*/*
+                  - cloudformation:CreateChangeSet
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - cognito-idp:CreateUserPool

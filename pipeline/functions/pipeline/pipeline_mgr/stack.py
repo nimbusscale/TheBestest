@@ -1,3 +1,4 @@
+from hashlib import sha1
 import logging
 
 import boto3
@@ -10,7 +11,8 @@ class Stack:
 
     def __init__(self, spec):
         self._name = spec.get('name')
-        self._arn =  spec.get('arn')
+        self._arn = spec.get('arn')
+        self._hexdigest = spec.get('hexdigest')
         self.cfn = boto3.client('cloudformation')
 
     def __repr__(self):
@@ -19,68 +21,20 @@ class Stack:
     def __str__(self):
         return str(self.to_dict())
 
-    @property
-    def arn(self):
-        if not self._arn:
-            try:
-                response = self.cfn.describe_stacks(StackName=self.name)
-            except ClientError as e:
-                if "does not exist" in e.response['Error']['Message']:
-                    return None
-                else:
-                    raise
-            self._arn = response['Stacks'][0]['StackId']
-        return self._arn
-
-    @arn.setter
-    def arn(self, arn):
-        self._arn = arn
-
-    def create(self, template_path, parameters=None):
-        # Check if stack already exists, if rolled back, then delete stack,
-        # Otherwise skip creation
-        if self.status == 'ROLLBACK_COMPLETE':
-            self.delete()
-
-        with open(template_path) as template_file:
-            template = template_file.read()
-            logger.info("Validating CFN template {}".format(template_path))
-            self.cfn.validate_template(TemplateBody=template)
-            if parameters:
-                cfn_params = [
-                    {'ParameterKey': key,
-                     'ParameterValue': parameters[key]}
-                    for key in parameters]
-            else:
-                cfn_params = []
-            logger.info(
-                "Creating CFN stack {} from {} with Params {}".format(
-                    self.name,
-                    template_path,
-                    cfn_params
-                )
-            )
-            response = self.cfn.create_stack(
-                StackName=self.name,
-                TemplateBody=template,
-                Capabilities=['CAPABILITY_IAM'],
-                Parameters=cfn_params
-            )
-
-        arn = response['StackId']
-        logger.info("StackId {}".format(arn))
-        create_waiter = self.cfn.get_waiter('stack_create_complete')
+    def __cfn_wait(self, condition):
+        create_waiter = self.cfn.get_waiter(condition)
         waiter_delay = 10
         waiter_max_attempts = 18
-        logger.info("Waiting up to {} seconds for stack creation.".format(
-            str(waiter_delay * waiter_max_attempts)
+        logger.info("Waiting up to {} seconds for {}.".format(
+            str(waiter_delay * waiter_max_attempts),
+            condition
         ))
         try:
-            create_waiter.wait(StackName=arn,
+            create_waiter.wait(StackName=self.arn,
                                WaiterConfig={
-                                    'Delay': waiter_delay,
-                                    'MaxAttempts': waiter_max_attempts
-                                    }
+                                   'Delay': waiter_delay,
+                                   'MaxAttempts': waiter_max_attempts
+                               }
                                )
         except WaiterError:
             events_response = self.cfn.describe_stack_events(
@@ -91,24 +45,96 @@ class Stack:
             raise RuntimeError(
                 "Stack failed to create with status {}".format(
                     self.status))
-        logger.info("Stack {} created".format(self.name))
+
+    def apply_template(self, template_path, parameters=None):
+        """applies a cfn template to stack, this may create the stack from
+        scratch or update an existing stack"""
+        # Check if stack already exists, if rolled back, then delete stack
+        if self.status == 'ROLLBACK_COMPLETE':
+            self.delete()
+
+        with open(template_path) as template_file:
+            template = template_file.read()
+
+        logger.info("Validating CFN template {}".format(template_path))
+        self.cfn.validate_template(TemplateBody=template)
+        if parameters:
+            cfn_params = [
+                {'ParameterKey': key,
+                 'ParameterValue': parameters[key]}
+                for key in parameters]
+        else:
+            cfn_params = []
+        # See if create from scratch or update
+        # add new line to end of file if one doesn't exist
+        if not template.endswith('\n'):
+            template = template + '\n'
+        hexdigest = sha1(template.encode()).hexdigest()
+        if self.hexdigest is None:
+            self.create(template, cfn_params)
+        elif hexdigest != self.hexdigest:
+            self.update(template,cfn_params)
+
+    @property
+    def arn(self):
+        if self.status:
+            if not self._arn:
+                try:
+                    response = self.cfn.describe_stacks(StackName=self.name)
+                except ClientError as e:
+                    if "does not exist" in e.response['Error']['Message']:
+                        return None
+                    else:
+                        raise
+                self._arn = response['Stacks'][0]['StackId']
+        else:
+            self._arn = None
+        return self._arn
+
+    @arn.setter
+    def arn(self, arn):
+        self._arn = arn
+
+    def create(self, template, param_list=None):
+            logger.info(
+                "Creating CFN stack {} with Params {}".format(
+                    self.name,
+                    param_list
+                )
+            )
+            response = self.cfn.create_stack(
+                StackName=self.name,
+                TemplateBody=template,
+                Capabilities=['CAPABILITY_IAM'],
+                Parameters=param_list
+            )
+
+            arn = response['StackId']
+            logger.info("StackId {}".format(arn))
+            self.__cfn_wait('stack_create_complete')
+            logger.info("Stack {} created".format(self.name))
 
     def delete(self):
         arn = self.arn
         logger.info("Deleting stack with ARN {}".format(arn))
-        delete_waiter = self.cfn.get_waiter('stack_delete_complete')
-        waiter_delay = 10
-        waiter_max_attempts = 6
-        logger.info("Waiting up to {} seconds for stack deletion.".format(
-            str(waiter_delay * waiter_max_attempts)
-        ))
         self.cfn.delete_stack(StackName=arn)
-        delete_waiter.wait(StackName=arn,
-                           WaiterConfig={
-                               'Delay': waiter_delay,
-                               'MaxAttempts': waiter_max_attempts
-                            }
-                           )
+        self.__cfn_wait('stack_delete_complete')
+        logger.info("Stack {} deleted".format(self.name))
+
+    @property
+    def hexdigest(self):
+        if self.status:
+            if not self._hexdigest:
+                cfn_response = self.cfn.get_template(StackName=self.arn)
+                stack_template = cfn_response['TemplateBody']
+                self._hexdigest = sha1(stack_template.encode()).hexdigest()
+            return self._hexdigest
+        else:
+            return None
+
+    @hexdigest.setter
+    def hexdigest(self, digest):
+        self._hexdigest = digest
 
     @property
     def name(self):
@@ -132,7 +158,23 @@ class Stack:
     def to_dict(self):
         return {
                 'arn': self.arn,
+                'hexdigest': self.hexdigest,
                 'name': self.name,
                 'status': self.status
         }
 
+    def update(self, template, param_list=None):
+        logger.info(
+            "Updating CFN stack {} with Params {}".format(
+                self.name,
+                param_list
+            )
+        )
+        self.cfn.update_stack(
+            StackName=self.name,
+            TemplateBody=template,
+            Capabilities=['CAPABILITY_IAM'],
+            Parameters=param_list
+        )
+        self.__cfn_wait('stack_update_complete')
+        logger.info("Stack {} updated".format(self.name))
