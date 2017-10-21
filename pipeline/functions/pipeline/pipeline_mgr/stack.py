@@ -51,6 +51,9 @@ class Stack:
         scratch or update an existing stack"""
         # Check if stack already exists, if rolled back, then delete stack
         if self.status == 'ROLLBACK_COMPLETE':
+            logger.info(
+                "CFN stack {} in a ROLLBACK_COMPLETE state.".format(self.name)
+            )
             self.delete()
 
         with open(template_path) as template_file:
@@ -73,7 +76,9 @@ class Stack:
         if self.hexdigest is None:
             self.create(template, cfn_params)
         elif hexdigest != self.hexdigest:
-            self.update(template,cfn_params)
+            self.update(template, cfn_params)
+        else:
+            logger.info("CFN stack {} already up-to-date.".format(self.name))
 
     @property
     def arn(self):
