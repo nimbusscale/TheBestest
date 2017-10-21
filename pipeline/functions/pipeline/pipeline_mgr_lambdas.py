@@ -48,6 +48,7 @@ def lambda_handler(event, context):
         # Simply rehydrating the manager object will update the pipeline status
         manager = Manager(event['manager'])
         event['manager'] = manager.to_dict()
+        logger.info("Pipeline status {}".format(manager.pipeline.status))
         return event
     elif action == 'SetTestStatus':
         manager = Manager(event['manager'])
