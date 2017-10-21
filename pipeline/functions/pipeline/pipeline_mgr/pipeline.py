@@ -27,16 +27,7 @@ class Pipeline:
             )
 
     def __repr__(self):
-        return ("Pipeline(" +
-                str({
-                    'name': self.name,
-                    'execution_id': self.execution_id,
-                    'status': self.status,
-                    'stack': self.stack
-                     })
-                + ")"
-
-        )
+        return "Pipeline(" + str(self.to_dict()) + ")"
 
     @property
     def app_stack_name(self):
@@ -77,6 +68,7 @@ class Pipeline:
 
     def to_dict(self):
         return {
+                'app_stack_name': self.app_stack_name,
                 'name': self.name,
                 'execution_id': self.execution_id,
                 'status': self.status,

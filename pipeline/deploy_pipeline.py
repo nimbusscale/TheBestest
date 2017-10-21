@@ -160,7 +160,7 @@ if __name__ == '__main__':
     # Ordered list tuples of stacks to deploy. Tuples include stack name,
     # template file path and env name (use None if no pertinent env name)
     stacks = [
-        ('thebestest-pipeline-prod', 'pipeline_deploy_stack.yaml'),
+        # ('thebestest-pipeline-prod', 'pipeline_deploy_stack.yaml'),
         ('thebestest-pipeline-mgr', 'pipeline_mgr_stack.yaml')
     ]
     args = arg_parse()
