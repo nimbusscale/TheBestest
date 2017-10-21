@@ -3,7 +3,10 @@ Description: A Pipeline to deploy TheBestest App to an environment
 Parameters:
   S3SourceKey:
     Type: String
-    Default: source/thebestest-master.zip
+    Description: S3 path to source ZipBall
+  AppStackName:
+    Type: String
+    Description: Name of the CFN used to deploy The Bestest App
 Resources:
   PipelineRole:
     Type: AWS::IAM::Role
@@ -245,7 +248,7 @@ Resources:
               InputArtifacts:
                 - Name: thebestest-source
               OutputArtifacts:
-                - Name: !Sub ${AWS::StackName}-deploy-template
+                - Name: !Sub ${AppStackName}-deploy-template
         - Name: DeployStack
           Actions:
             - Name: CreateChangeSet
@@ -256,18 +259,14 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub ${AWS::StackName}
+                StackName: !Sub ${AppStackName}
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
-                ChangeSetName: !Sub ${AWS::StackName}-changeset
-                TemplatePath: !Sub ${AWS::StackName}-deploy-template::stack_deploy.yaml
+                ChangeSetName: !Sub ${AppStackName}-changeset
+                TemplatePath: !Sub ${AppStackName}-deploy-template::stack_deploy.yaml
                 RoleArn: !GetAtt CloudformationRole.Arn
-                ParameterOverrides: !Sub |
-                  {
-                    "EnvName" : "${AWS::StackName}"
-                  }
               InputArtifacts:
-                - Name: !Sub ${AWS::StackName}-deploy-template
+                - Name: !Sub ${AppStackName}-deploy-template
             - Name: ExecuteChangeSet
               RunOrder: 2
               ActionTypeId:
@@ -276,6 +275,6 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub ${AWS::StackName}
+                StackName: !Sub ${AppStackName}
                 ActionMode: CHANGE_SET_EXECUTE
-                ChangeSetName: !Sub ${AWS::StackName}-changeset
+                ChangeSetName: !Sub ${AppStackName}-changeset
