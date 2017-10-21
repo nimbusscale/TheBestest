@@ -161,51 +161,51 @@ Resources:
         		"BuildPipeline": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
-        			"Next": "SetStartUnitTestAction"
+        			"Next": "SetStartTestAction"
         		},
-        		"SetStartUnitTestAction": {
+        		"SetStartTestAction": {
         			"Type": "Pass",
-        			"Result": "StartUnitTest",
+        			"Result": "StartTest",
         			"ResultPath": "$.pipeline_action",
-        			"Next": "StartUnitTest"
+        			"Next": "StartTest"
         		},
-        		"StartUnitTest": {
+        		"StartTest": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
-        			"Next": "SetCheckUnitTestStatusAction"
+        			"Next": "SetCheckTestStatusAction"
         		},
-        		"SetCheckUnitTestStatusAction": {
+        		"SetCheckTestStatusAction": {
         			"Type": "Pass",
-        			"Result": "CheckUnitTestStatus",
+        			"Result": "CheckTestStatus",
         			"ResultPath": "$.pipeline_action",
-        			"Next": "CheckUnitTestStatus"
+        			"Next": "CheckTestStatus"
         		},
-        		"CheckUnitTestStatus": {
+        		"CheckTestStatus": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
-        			"Next": "UnitTestStatus"
+        			"Next": "TestStatus"
         		},
-        		"UnitTestStatus": {
+        		"TestStatus": {
         			"Type": "Choice",
         			"Choices": [{
         				"Variable": "$.manager.pipeline.status",
         				"StringEquals": "InProgress",
-        				"Next": "UnitTestStatusWait"
+        				"Next": "TestStatusWait"
         			}],
-        			"Default": "SetUnitTestStatusAction"
+        			"Default": "SetTestStatusAction"
         		},
-        		"UnitTestStatusWait": {
+        		"TestStatusWait": {
         			"Type": "Wait",
         			"Seconds": 15,
-        			"Next": "CheckUnitTestStatus"
+        			"Next": "CheckTestStatus"
         		},
-        		"SetUnitTestStatusAction": {
+        		"SetTestStatusAction": {
         			"Type": "Pass",
-        			"Result": "SetUnitTestStatus",
+        			"Result": "SetTestStatus",
         			"ResultPath": "$.pipeline_action",
-        			"Next": "SetUnitTestStatus"
+        			"Next": "SetTestStatus"
         		},
-        		"SetUnitTestStatus": {
+        		"SetTestStatus": {
         			"Type": "Task",
         			"Resource": "${PipelineManagerFunction.Arn}",
         			"Next": "End"

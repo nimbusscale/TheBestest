@@ -35,7 +35,7 @@ def lambda_handler(event, context):
                                template_path)
         event['manager'] = manager.to_dict()
         return event
-    elif action == 'StartUnitTest':
+    elif action == 'StartTest':
         manager = Manager(event['manager'])
         execution_id = manager.pipeline.start()
         manager.pull_request.set_status(manager.oath_token,
@@ -44,12 +44,12 @@ def lambda_handler(event, context):
                                         execution_id)
         event['manager'] = manager.to_dict()
         return event
-    elif action == 'CheckUnitTestStatus':
+    elif action == 'CheckTestStatus':
         # Simply rehydrating the manager object will update the pipeline status
         manager = Manager(event['manager'])
         event['manager'] = manager.to_dict()
         return event
-    elif action == 'SetUnitTestStatus':
+    elif action == 'SetTestStatus':
         manager = Manager(event['manager'])
         if manager.pipeline.status == 'Succeeded':
             pr_status = 'success'
@@ -94,79 +94,6 @@ def webhook_handler(event):
     )
     state['manager'] = manager.to_dict()
     return state
-
-
-def retrieve_source(event):
-    """Retrieves a zipball of source based on a SHA and uploads
-    it to S3
-    """
-    token = os.environ['OAUTH_TOKEN']
-    bucket = os.environ['S3_BUCKET']
-    pr = PullRequest(event['pull_request'])
-    s3_version_id = pr.retrieve_source(token, bucket)
-    event['version_id'] = s3_version_id
-    return event
-
-
-def build_pipeline(name, src_id, template_path):
-    """Builds a pipeline with a test and deploy stack"""
-    bucket = os.environ['S3_BUCKET']
-    stack = Stack(name)
-    if stack.status == 'ROLLBACK_COMPLETE':
-        stack.delete()
-    if not stack.arn:
-        logger.info("CFN stack {} does not exist.".format(name))
-        source = Source(None, None, None, src_id, None, bucket)
-        source.download_from_s3()
-        source.unzip()
-        unzipdir = source.unzip_dir
-        stack.create(unzipdir + template_path)
-    else:
-        logger.info("CFN stack {} already exists".format(name))
-
-
-def start_pipeline(event, context):
-    """Lambda that starts a codepipeline.
-
-    Pipeline name is provided by Env Var
-    """
-    token = os.environ['OAUTH_TOKEN']
-    pipeline_name = event['pipeline_name']
-    pr = PullRequest(event['pull_request'])
-    pipeline = Pipeline({'name': pipeline_name})
-    execution_id = pipeline.start()
-    pr.set_status(token,
-                  'pending',
-                  pipeline_name,
-                  execution_id)
-    event['pipeline'] = pipeline.to_dict()
-    return event
-
-
-def check_pipeline_status(event, context):
-    """Lambda that checks that status of a codepipeline execution id"""
-    pipeline = Pipeline(event['pipeline'])
-    event['pipeline'] = pipeline.to_dict()
-    return event
-
-
-def set_github_status(event, context):
-    """Lambda that sets the status of the PR to failure"""
-    token = os.environ['OAUTH_TOKEN']
-    pr = PullRequest(event['pull_request'])
-    pipeline = Pipeline(event['pipeline'])
-    pipeline_status = pipeline.staus
-    if pipeline_status == 'Succeeded':
-        pr_status = 'success'
-    elif pipeline_status == 'Failed':
-        pr_status = 'failure'
-    elif pipeline_status == 'Superseded':
-        pr_status = 'error'
-    pr.set_status(token,
-                  pr_status,
-                  pipeline.name,
-                  pipeline.execution_id)
-    return event
 
 
 
