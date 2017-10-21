@@ -1,9 +1,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: A Pipeline to deploy TheBestest App to an environment
 Parameters:
-  EnvName:
-    Description: Name of the environment to be deployed
+  S3SourceKey:
     Type: String
+    Description: S3 path to source ZipBall
+  AppStackName:
+    Type: String
+    Description: Name of the CFN used to deploy The Bestest App
 Resources:
   PipelineRole:
     Type: AWS::IAM::Role
@@ -36,17 +39,12 @@ Resources:
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
-                  - cloudformation:CreateStack
-                  - cloudformation:DeleteStack
-                  - cloudformation:DescribeStacks
-                  - cloudformation:UpdateStack
-                  - cloudformation:CreateChangeSet
-                  - cloudformation:DeleteChangeSet
-                  - cloudformation:DescribeChangeSet
-                  - cloudformation:ExecuteChangeSet
-                  - cloudformation:SetStackPolicy
                   - cloudformation:ValidateTemplate
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest*/*
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -56,9 +54,8 @@ Resources:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
                 Resource:
+                  - !GetAtt TheBestestUnitTest.Arn
                   - !GetAtt TheBestestBuild.Arn
-
-
 
   CloudformationRole:
     Type: AWS::IAM::Role
@@ -109,8 +106,8 @@ Resources:
                 Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/thebestest*LambdaRole*
               - Effect: Allow
                 Action:
-                  - cloudformation:CreateChangeSet
-                Resource: "*"
+                  - cloudformation:*
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest*/*
               - Effect: Allow
                 Action:
                   - cognito-idp:CreateUserPool
@@ -164,11 +161,34 @@ Resources:
                 Resource: !Sub
                   -  arn:aws:s3:::${PipelineBucket}
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
+              - Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest*/*
+
+  TheBestestUnitTest:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-unittest
+      ServiceRole: !GetAtt BuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec-unittest.yaml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/eb-python-3.4-amazonlinux-64:2.3.2
+      Artifacts:
+        Type: CODEPIPELINE
 
   TheBestestBuild:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub thebestest-${EnvName}-build
+      Name: !Sub ${AWS::StackName}-build
       ServiceRole: !GetAtt BuildRole.Arn
       Source:
         Type: CODEPIPELINE
@@ -200,9 +220,21 @@ Resources:
                 Version: 1
               Configuration:
                 S3Bucket: !ImportValue TheBestest-PipelineBucket
-                S3ObjectKey: thebestest-source.zip
+                S3ObjectKey: !Ref S3SourceKey
                 PollForSourceChanges: false
               OutputArtifacts:
+                - Name: thebestest-source
+        - Name: UnitTest
+          Actions:
+            - Name: UnitTest
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref TheBestestUnitTest
+              InputArtifacts:
                 - Name: thebestest-source
         - Name: Package
           Actions:
@@ -217,7 +249,7 @@ Resources:
               InputArtifacts:
                 - Name: thebestest-source
               OutputArtifacts:
-                - Name: !Sub thebestest-${EnvName}-deploy-template
+                - Name: !Sub ${AppStackName}-deploy-template
         - Name: DeployStack
           Actions:
             - Name: CreateChangeSet
@@ -228,18 +260,14 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub thebestest-${EnvName}
+                StackName: !Sub ${AppStackName}
                 ActionMode: CHANGE_SET_REPLACE
                 Capabilities: CAPABILITY_IAM
-                ChangeSetName: !Sub thebestest-${EnvName}-changeset
-                TemplatePath: !Sub thebestest-${EnvName}-deploy-template::stack_deploy.yaml
+                ChangeSetName: !Sub ${AppStackName}-changeset
+                TemplatePath: !Sub ${AppStackName}-deploy-template::stack_deploy.yaml
                 RoleArn: !GetAtt CloudformationRole.Arn
-                ParameterOverrides: !Sub |
-                  {
-                    "EnvName" : "${EnvName}"
-                  }
               InputArtifacts:
-                - Name: !Sub thebestest-${EnvName}-deploy-template
+                - Name: !Sub ${AppStackName}-deploy-template
             - Name: ExecuteChangeSet
               RunOrder: 2
               ActionTypeId:
@@ -248,17 +276,6 @@ Resources:
                 Provider: CloudFormation
                 Version: 1
               Configuration:
-                StackName: !Sub thebestest-${EnvName}
+                StackName: !Sub ${AppStackName}
                 ActionMode: CHANGE_SET_EXECUTE
-                ChangeSetName: !Sub thebestest-${EnvName}-changeset
-
-Outputs:
-  PipelineName:
-    Value: !Ref TheBestestPipeline
-    Export:
-      Name: !Sub TheBestest-${EnvName}-DeployPipeline
-
-
-
-
-
+                ChangeSetName: !Sub ${AppStackName}-changeset

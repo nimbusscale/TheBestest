@@ -3,6 +3,7 @@ Description: Manages the flow through the pipeline for TheBestest App
 Parameters:
   OAuthToken:
     Type: String
+
 Resources:
   PipelineMgrLambdaRole:
     Type: AWS::IAM::Role
@@ -21,9 +22,17 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - s3:Get*
                   - s3:PutObject
                 Resource: !Sub
                   -  arn:aws:s3:::${PipelineBucket}/*
+                  - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Sub
+                  -  arn:aws:s3:::${PipelineBucket}
                   - { PipelineBucket: !ImportValue TheBestest-PipelineBucket }
               - Effect: Allow
                 Action:
@@ -31,120 +40,51 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
-                  - codepipeline:GetPipeline
-                  - codepipeline:GetPipelineState
-                  - codepipeline:StartPipelineExecution
-                  - codepipeline:GetPipelineExecution
+                  - cloudformation:ValidateTemplate
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/thebestest-*/*
+              - Effect: Allow
+                Action:
+                  - codepipeline:*
+                Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:thebestest-pipeline-test-*
+              - Effect: Allow
+                Action:
+                  - codebuild:*
+                Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/thebestest-pipeline-test-*
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/thebestest-pipeline-test-*
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/thebestest-pipeline-test-*
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  WebhookHandler:
+  PipelineManagerFunction:
     Type: AWS::Lambda::Function
     Properties:
       # functions_deploy is a temp location created by the
       # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.webhook_handler
+      Code: functions_deploy/pipeline
+      Handler: pipeline_mgr_lambdas.lambda_handler
       Role: !GetAtt PipelineMgrLambdaRole.Arn
       Runtime: python3.6
-
-  RetrieveSource:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.retrieve_source
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
+      Timeout: 250
       Environment:
         Variables:
           OAUTH_TOKEN: !Ref OAuthToken
           S3_BUCKET: !ImportValue TheBestest-PipelineBucket
-
-  StartTestPipeline:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.start_pipeline
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
-
-  CheckTestPipelineStatus:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.check_pipeline_status
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
-
-  SetTestStatus:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.set_github_status
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue TheBestest-TestPipeline
-
-  StartStageDeployPipeline:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.start_pipeline
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
-
-  CheckStageDeployStatus:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.check_pipeline_status
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
-
-  SetStageDeployStatus:
-    Type: AWS::Lambda::Function
-    Properties:
-      # functions_deploy is a temp location created by the
-      # deploy_pipeline.infra.sh script
-      Code: functions_deploy/pipeline_mgr
-      Handler: pipeline_mgr.set_github_status
-      Role: !GetAtt PipelineMgrLambdaRole.Arn
-      Runtime: python3.6
-      Environment:
-        Variables:
-          OAUTH_TOKEN: !Ref OAuthToken
-          PIPELINE_NAME: !ImportValue TheBestest-stage-DeployPipeline
-
 
   PipelineMgrStateMachineRole:
     Type: AWS::IAM::Role
@@ -173,100 +113,102 @@ Resources:
       DefinitionString: !Sub |
         {
         	"Comment": "update Automatic testing or deployment of code kicked off by GH Webhooks",
-        	"StartAt": "HandleWebhook",
+        	"StartAt": "SetWebhookAction",
         	"States": {
+        		"SetWebhookAction": {
+        			"Type": "Pass",
+        			"Result": "HandleWebhook",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "HandleWebhook"
+        		},
         		"HandleWebhook": {
         			"Type": "Task",
-        			"Resource": "${WebhookHandler.Arn}",
+        			"Resource": "${PipelineManagerFunction.Arn}",
         			"Next": "PipelineAction"
         		},
         		"PipelineAction": {
         			"Type": "Choice",
         			"Choices": [{
-        				"Variable": "$.action",
+        				"Variable": "$.pipeline_action",
         				"StringEquals": "test",
-        				"Next": "RetrieveTestSource"
+        				"Next": "SetRetrieveSourceAction"
         			}],
         			"Default": "End"
         		},
-        		"RetrieveTestSource": {
-        			"Type": "Task",
-        			"Resource": "${RetrieveSource.Arn}",
-        			"Next": "StartUnitTest"
+        		"SetRetrieveSourceAction": {
+        			"Type": "Pass",
+        			"Result": "RetrieveSource",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "RetrieveSource"
         		},
-        		"StartUnitTest": {
+        		"RetrieveSource": {
         			"Type": "Task",
-        			"Resource": "${StartTestPipeline.Arn}",
-        			"Next": "CheckUnitTestStatus"
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "SetTestPipelineName"
         		},
-        		"CheckUnitTestStatus": {
+        		"SetTestPipelineName": {
+        			"Type": "Pass",
+        			"Result": "thebestest-pipeline-test-",
+        			"ResultPath": "$.pipeline_name",
+        			"Next": "SetBuildPipelineAction"
+        		},
+        		"SetBuildPipelineAction": {
+        			"Type": "Pass",
+        			"Result": "BuildPipeline",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "BuildPipeline"
+        		},
+        		"BuildPipeline": {
         			"Type": "Task",
-        			"Resource": "${CheckTestPipelineStatus.Arn}",
-        			"Next": "UnitTestStatus"
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "SetStartTestAction"
         		},
-        		"UnitTestStatus": {
+        		"SetStartTestAction": {
+        			"Type": "Pass",
+        			"Result": "StartTest",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "StartTest"
+        		},
+        		"StartTest": {
+        			"Type": "Task",
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "SetCheckTestStatusAction"
+        		},
+        		"SetCheckTestStatusAction": {
+        			"Type": "Pass",
+        			"Result": "CheckTestStatus",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "CheckTestStatus"
+        		},
+        		"CheckTestStatus": {
+        			"Type": "Task",
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "TestStatus"
+        		},
+        		"TestStatus": {
         			"Type": "Choice",
         			"Choices": [{
-        				"Variable": "$.pipeline_status",
+        				"Variable": "$.manager.pipeline.status",
         				"StringEquals": "InProgress",
-        				"Next": "UnitTestStatusWait"
+        				"Next": "TestStatusWait"
         			}],
-        			"Default": "SetUnitTestStatus"
+        			"Default": "SetTestStatusAction"
         		},
-        		"UnitTestStatusWait": {
+        		"TestStatusWait": {
         			"Type": "Wait",
         			"Seconds": 15,
-        			"Next": "CheckUnitTestStatus"
+        			"Next": "CheckTestStatus"
         		},
-        		"SetUnitTestStatus": {
+        		"SetTestStatusAction": {
+        			"Type": "Pass",
+        			"Result": "SetTestStatus",
+        			"ResultPath": "$.pipeline_action",
+        			"Next": "SetTestStatus"
+        		},
+        		"SetTestStatus": {
         			"Type": "Task",
-        			"Resource": "${SetTestStatus.Arn}",
-        			"Next": "CheckDeployToStage"
-        		},
-        		"CheckDeployToStage": {
-        			"Type": "Choice",
-        			"Choices": [{
-        				"Or": [{
-        						"Variable": "$.pipeline_status",
-        						"StringEquals": "Failed"
-        					},
-        					{
-        						"Variable": "$.pipeline_status",
-        						"StringEquals": "Superseded"
-        					}
-        				],
-        				"Next": "End"
-        			}],
-        			"Default": "StartStageDeploy"
-        		},
-        		"StartStageDeploy": {
-        			"Type": "Task",
-        			"Resource": "${StartStageDeployPipeline.Arn}",
-        			"Next": "CheckStageDeployStatus"
-        		},
-        		"CheckStageDeployStatus": {
-        			"Type": "Task",
-        			"Resource": "${CheckStageDeployStatus.Arn}",
-        			"Next": "StageDeployStatus"
-        		},
-        		"StageDeployStatus": {
-        			"Type": "Choice",
-        			"Choices": [{
-        				"Variable": "$.pipeline_status",
-        				"StringEquals": "InProgress",
-        				"Next": "StageDeployStatusWait"
-        			}],
-        			"Default": "SetStageDeployStatus"
-        		},
-        		"StageDeployStatusWait": {
-        			"Type": "Wait",
-        			"Seconds": 15,
-        			"Next": "CheckStageDeployStatus"
-        		},
-        		"SetStageDeployStatus": {
-        			"Type": "Task",
-        			"Resource": "${SetStageDeployStatus.Arn}",
-        			"End": true
+        			"Resource": "${PipelineManagerFunction.Arn}",
+        			"Next": "End"
         		},
         		"End": {
         			"Type": "Pass",
