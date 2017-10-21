@@ -13,6 +13,7 @@ class Pipeline:
         if type(spec) == dict:
             self._name = spec.get('name')
             self._execution_id = spec.get('execution_id')
+            self._app_stack_name = spec.get('app_stack_name')
             if spec.get('stack'):
                 self._stack = (
                     spec['stack'] if type(spec['stack']) is Stack
@@ -34,6 +35,14 @@ class Pipeline:
 
         )
 
+    @property
+    def app_stack_name(self):
+        return self._app_stack_name
+
+    @app_stack_name.setter
+    def app_stack_name(self, name):
+        self._app_stack_name = name
+
     def build(self, source, template_path):
         """Builds a pipeline with a test and deploy stack"""
         source.download_from_s3()
@@ -41,9 +50,11 @@ class Pipeline:
         unzipdir = source.unzip_dir
         self.stack.apply_template(
             unzipdir + template_path,
-            parameters={'S3SourceKey': source.s3_path}
+            parameters={
+                'S3SourceKey': source.s3_path,
+                'AppStackName': self.app_stack_name
+            }
         )
-
 
     @property
     def execution_id(self):
